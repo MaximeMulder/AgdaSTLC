@@ -9,6 +9,20 @@ data Ctx : Set  where
   ∅ : Ctx
   _↪_::_ : String → Type → Ctx →  Ctx
 
+data Weak : Ctx → String → Type → Ctx → Set where
+  weak : ∀ Γ x τ → Weak Γ x τ (x ↪ τ :: Γ)
+
+data Weak-n : Ctx → Ctx → Set  where
+  weak-n-base : ∀ Γ x τ
+    → Weak Γ x τ(x ↪ τ :: Γ)
+    → Weak-n Γ (x ↪ τ :: Γ)
+  weak-n-symm : ∀ Γ
+    → Weak-n Γ Γ
+  weak-n-trans : ∀ Γ Γ' Γ''
+    → Weak-n Γ Γ'
+    → Weak-n Γ' Γ''
+    → Weak-n Γ Γ''
+
 data Term : Set where
   tm-true  : Term
   tm-false : Term
@@ -24,8 +38,8 @@ data _[_/_]⇛_ : Term → Term → String → Term → Set where
     → tm-false [ eₓ / x ]⇛ tm-false
   subst-var-eq : ∀ x eₓ
     → (tm-var x) [ eₓ / x ]⇛ eₓ
-  subst-var-ne : ∀ x eₓ x'
-    → (tm-var x') [ eₓ / x ]⇛ (tm-var x')
+  subst-var-ne : ∀ x eₓ y
+    → (tm-var y) [ eₓ / x ]⇛ (tm-var y)
   subst-if : ∀ x eₓ e₁ e₂ e₃ e₁' e₂' e₃'
     → e₁ [ eₓ / x ]⇛ e₁'
     → e₂ [ eₓ / x ]⇛ e₂'
@@ -41,12 +55,20 @@ data _[_/_]⇛_ : Term → Term → String → Term → Set where
     → (tm-app e₁ e₂) [ eₓ / x ]⇛ (tm-app e₁' e₂') 
 
 data _↪_∈_ : String → Type → Ctx → Set where
-  B : ∀ x τ Γ
+  ∈-b : ∀ x τ Γ
     → x ↪ τ ∈ (x ↪ τ :: Γ)
-  I : ∀ x τ x' τ' Γ
+  ∈-i : ∀ x τ x' τ' Γ
     → x ≢ x'
     → x ↪ τ ∈ Γ
     → x ↪ τ ∈ (x' ↪ τ' :: Γ)
+
+data _∉_ : String → Ctx → Set where
+  ∉-b : ∀ x
+    → x ∉ ∅
+  ∉-i : ∀ x Γ y τ
+    → x ≢ y
+    → x ∉ Γ
+    → x ∉ (y ↪ τ :: Γ)
 
 data _⊢_∶_ : Ctx → Term → Type → Set where
   t-true : ∀ Γ
@@ -97,31 +119,34 @@ data progress (e : Term) : Set where
     Value e
     → progress e
 
-{- ∀ Γ x τ e τ' → (x ↪ τ :: Γ) ⊢ e ∶ τ' → Γ ⊢ e[τ/x] ∶ τ' -}
+{- p-ty-weak : ∀ x e τ
+  → ∅ ⊢ e ∶ τ
+  → (x ↪ τ :: Γ) ⊢ e ∶ τ -}
 
-p-ty-subst : ∀ Γ x τₓ eₓ e τ e' 
-  → (x ↪ τₓ :: Γ) ⊢ e ∶ τ
-  → ∅ ⊢ eₓ ∶ τₓ
+p-ty-subst : ∀ x eₓ τₓ e τ e'
+  → ∅ ⊢ eₓ ∶ τₓ 
+  → (x ↪ τₓ :: ∅) ⊢ e ∶ τ
   → e [ eₓ / x ]⇛ e'
-  → Γ ⊢ e' ∶ τ
-p-ty-subst Γ x τₓ eₓ e τ e' (t-true (x ↪ τₓ :: Γ)) _ (subst-true x eₓ) = t-true Γ
-p-ty-subst Γ x τₓ eₓ e τ e' (t-false (x ↪ τₓ :: Γ)) _ (subst-false x eₓ) = t-false Γ
-p-ty-subst Γ x τₓ eₓ e τ e' (t-if (x ↪ τₓ :: Γ) τ e₁ e₂ e₃ te₁ te₂ te₃) teₓ (subst-if x eₓ e₁ e₂ e₃ e₁' e₂' e₃' se₁' se₂' se₃') =
-  let te₁' : Γ  ⊢ e₁' ∶ ty-bool
-      te₁' = p-ty-subst Γ x τₓ eₓ e₁ ty-bool e₁' te₁ teₓ se₁' in
-  let te₂' : Γ  ⊢ e₂' ∶ τ
-      te₂' = p-ty-subst Γ x τₓ eₓ e₂ τ e₂' te₂ teₓ se₂' in
-  let te₃' : Γ  ⊢ e₃' ∶ τ
-      te₃' = p-ty-subst Γ x τₓ eₓ e₃ τ e₃' te₃ teₓ se₃' in
-  t-if Γ τ e₁' e₂' e₃' te₁' te₂' te₃'
+  → ∅ ⊢ e' ∶ τ
+p-ty-subst x eₓ τₓ e τ e' _ (t-true (x ↪ τₓ :: ∅)) (subst-true x eₓ) = t-true ∅
+p-ty-subst x eₓ τₓ e τ e' _ (t-false (x ↪ τₓ :: ∅)) (subst-false x eₓ) = t-false ∅
+{- p-ty-subst x eₓ τₓ e τ e' teₓ (t-var (x ↪ τₓ :: ∅) y τ (∈-b x τₓ ∅)) (subst-var-ne x eₓ y) = _ {- t-var (x ↪ τₓ :: ∅) x τₓ (∈-b x τₓ ∅) -}
+p-ty-subst x eₓ τₓ e τ e' teₓ (t-var (x ↪ τₓ :: ∅) x τ (∈-b x τₓ ∅)) (subst-var-eq x eₓ) = teₓ -}
+p-ty-subst x eₓ τₓ e τ e' teₓ (t-if (x ↪ τₓ :: ∅) τ e₁ e₂ e₃ te₁ te₂ te₃) (subst-if x eₓ e₁ e₂ e₃ e₁' e₂' e₃' se₁' se₂' se₃') =
+  let te₁' : ∅  ⊢ e₁' ∶ ty-bool
+      te₁' = p-ty-subst x eₓ τₓ e₁ ty-bool e₁' teₓ te₁ se₁' in
+  let te₂' : ∅  ⊢ e₂' ∶ τ
+      te₂' = p-ty-subst x eₓ τₓ e₂ τ e₂' teₓ te₂ se₂' in
+  let te₃' : ∅  ⊢ e₃' ∶ τ
+      te₃' = p-ty-subst x eₓ τₓ e₃ τ e₃' teₓ te₃ se₃' in
+  t-if ∅ τ e₁' e₂' e₃' te₁' te₂' te₃'
+p-ty-subst x eₓ τₓ e τ e' teₓ (t-app (x ↪ τₓ :: ∅) e₁ e₂ τ₁ τ₂ te₁ te₂) (subst-app x eₓ e₁ e₂ e₁' e₂' se₁ se₂) =
+  let te₁' : ∅ ⊢ e₁' ∶ ty-abs τ₁ τ₂
+      te₁' = p-ty-subst x eₓ τₓ e₁ (ty-abs τ₁ τ₂) e₁' teₓ te₁ se₁ in
+  let te₂' : ∅ ⊢ e₂' ∶ τ₂
+      te₂' = p-ty-subst x eₓ τₓ e₂ τ₂ e₂' teₓ te₂ se₂ in
+  t-app ∅ e₁' e₂' τ₁ τ₂ te₁' te₂'
 
-{- (t-if Γ τ e₂' e₃' _ _ _) -}
-{- p-ty-subst Γ x τₓ eₓ e τ₂ e' (t-app (x ↪ τₓ :: Γ) e₁ e₂ τ₁ τ₂ te₁ te₂) teₓ (subst-app x eₓ e₁ e₂ e₁' e₂' se₁ se₂) =
-  let te₁' : Γ ⊢ e₁' ∶ (ty-abs τ₁ τ₂)
-      te₁' = p-ty-subst Γ x τₓ eₓ e₁ (ty-abs τ₁ τ₂) e₁' (t-abs (x ↪ τₓ :: Γ) _ τ₁ τ₂ _ _) teₓ se₁ in
-  let te₂' : Γ ⊢ e₂' ∶ τ₂
-      te₂' = p-ty-subst Γ x τₓ eₓ e₂ τ₂ e₂' te₂ teₓ se₂ in
-  (t-app Γ e₁' e₂' τ₁ τ₂ te₁' te₂') -}
 {- p-ty-subst Γ x τₓ eₓ e τ  e' (t-abs (x ↪ τₓ :: Γ) y τ₁ τ₂ e'' te'') _ _ = _ -}
 
 {-
