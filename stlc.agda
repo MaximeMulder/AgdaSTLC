@@ -17,6 +17,10 @@ data Ctx : Set  where
   ∅ : Ctx
   _,_∶_ : Ctx → String → Type → Ctx
 
+_,_ : Ctx → Ctx → Ctx
+Γ , ∅ = Γ
+Γ , (Γ' , x ∶ τ) = (Γ , Γ') , x ∶ τ
+
 data _∶_∈_ : String → Type → Ctx → Set where
   ∈-b : ∀ Γ x τ
     → x ∶ τ ∈ Γ , x ∶ τ
@@ -28,29 +32,47 @@ data _∶_∈_ : String → Type → Ctx → Set where
 data _∉_ : String → Ctx → Set where
   ∉-b : ∀ x
     → x ∉ ∅
-  ∉-i : ∀ Γ x y τ
-    → x ≢ y
+  ∉-i : ∀ Γ x x' τ'
+    → x ≢ x'
     → x ∉ Γ
-    → x ∉ Γ , y ∶ τ
+    → x ∉ Γ , x' ∶ τ'
 
-data Permut : Ctx → Ctx → Set where
-  B : ∀ Γ x₁ τ₁ x₂ τ₂
+data Exchange : Ctx → Ctx → Set where
+  exchange : ∀ Γ Γ' x₁ τ₁ x₂ τ₂
     → x₁ ≢ x₂
-    → Permut (Γ , x₁ ∶ τ₁ , x₂ ∶ τ₂) (Γ , x₂ ∶ τ₂ , x₁ ∶ τ₁)
+    → Exchange (Γ , x₁ ∶ τ₁ , x₂ ∶ τ₂ , Γ') (Γ , x₂ ∶ τ₂ , x₁ ∶ τ₁ , Γ')
 
-{- data Weak : Ctx → String → Type → Ctx → Set where
-  weak : ∀ Γ x τ → Weak Γ x τ (x ↪ τ :: Γ)
+data Weaken : Ctx → Ctx → Set where
+  weaken-∉ : ∀ Γ₁ Γ₂ x τ
+    → x ∉ Γ₁
+    → Weaken (Γ₁ , Γ₂) (Γ₁ , x ∶ τ , Γ₂)
+  weaken-∈ : ∀ Γ₁ Γ₂ x τ
+    → x ∶ τ ∈ Γ₂
+    → Weaken (Γ₁ , Γ₂) (Γ₁ , x ∶ τ , Γ₂)
 
-data Weak-n : Ctx → Ctx → Set  where
-  weak-n-base : ∀ Γ x τ
-    → Weak Γ x τ(x ↪ τ :: Γ)
-    → Weak-n Γ (x ↪ τ :: Γ)
-  weak-n-symm : ∀ Γ
-    → Weak-n Γ Γ
-  weak-n-trans : ∀ Γ Γ' Γ''
-    → Weak-n Γ Γ'
-    → Weak-n Γ' Γ''
-    → Weak-n Γ Γ'' -}
+{-
+  Included and excluded variables must be distinct.
+-}
+p-incl-excl : ∀ Γ x y τ
+   → x ∶ τ ∈ Γ
+   → y ∉ Γ
+   → x ≢ y
+p-incl-excl ∅ x y τ ()
+p-incl-excl (Γ , x ∶ τ) x y τ (∈-b Γ x τ) (∉-i Γ y x τ ≢-yx _) =
+  ≢-sym ≢-yx
+p-incl-excl (Γ , x' ∶ τ') x y τ (∈-i Γ x τ x' τ' _ ∈-x-Γ) (∉-i Γ y x' τ' _ ∉-y-Γ) =
+  p-incl-excl Γ x y τ ∈-x-Γ ∉-y-Γ
+
+{-
+  Inclusion is preserved under weakening.
+-}
+{- p-in-weaken : ∀ Γ Γ' x τ
+  → Weaken Γ Γ'
+  → x ∶ τ ∈ Γ
+  → x ∶ τ ∈ Γ'
+p-in-weaken Γ Γ' x τ (weaken-∉ Γ₁ Γ₂ x' τ' ∉-i-Γ) a with Γ₁
+... | ∅ = a
+... | w , x₂ ∶ x₃ = _ -}
 
 data Term : Set where
   tm-true  : Term
@@ -135,48 +157,54 @@ data progress (e : Term) : Set where
     Value e
     → progress e
 
-{-
-  Inclusion is preserved upon permutation.
--}
-p-in-permut : ∀ Γ Γ' x τ
-  → Permut Γ Γ'
+{- p-idk : ∀ Γ x τ Γ₁ Γ₂
+  → Γ ≡ Γ₁ , Γ₂
   → x ∶ τ ∈ Γ
-  → x ∶ τ ∈ Γ' 
-p-in-permut Γ Γ' x τ (B _ x₁ τ₁ x₂ τ₂ ≢-x₁₂) (∈-i _ x τ x₂ τ₂ ≢-x₂ (∈-i _ x τ x₁ τ₁ ≢-x₁ ∈-x-Γₚ)) =
-  ∈-i _ x τ x₁ τ₁ ≢-x₁ (∈-i _ _ _ _ _ ≢-x₂ ∈-x-Γₚ)
-p-in-permut Γ Γ' x τ (B Γₚ x₁ τ₁ x₂ τ₂ ≢-x₁₂) (∈-i _ x τ x₂ τ₂ ≢-x₂ (∈-b _ x τ)) =
-  ∈-b _ x τ
-p-in-permut Γ Γ' x τ (B Γₚ x₁ τ₁ x₂ τ₂ ≢-x₁₂) (∈-b _ x₂ τ₂) with x ≟ x₁
-... | no  ≢-x₁ = ∈-i _ x τ x₁ τ₁ ≢-x₁ (∈-b _ x τ)
-... | yes ≡-x₁ = ∈-i _ x₂ τ₂ x₁ τ₁ (≢-sym ≢-x₁₂) (∈-b _ x₂ τ₂)
+  → Either (x ∶ τ ∈ Γ₁) (x ∶ τ ∈ Γ₂)
+p-idk Γ x τ Γ₁ Γ₂ equiv in -}
 
 {-
-  Typing is preserved upon permutation.
+  Inclusion is preserved under exchange.
 -}
-p-permut : ∀ Γ Γ' e τ
-  → Permut Γ Γ'
+{- p-in-exchange : ∀ Γ Γ' x τ
+  → Exchange Γ Γ'
+  → x ∶ τ ∈ Γ
+  → x ∶ τ ∈ Γ'
+p-in-exchange Γ Γ' x τ (exchange aa bb x₁ τ₁ x₂ τ₂ ≢-x₁₂) (∈-i _ x τ x₂ τ₂ ≢-x₂ (∈-i _ x τ x₁ τ₁ ≢-x₁ ∈-x-Γₚ)) =
+  ∈-i _ x τ x₁ τ₁ ≢-x₁ (∈-i _ _ _ _ _ ≢-x₂ ∈-x-Γₚ)
+p-in-exchange Γ Γ' x τ (exchange aa bb x₁ τ₁ x₂ τ₂ ≢-x₁₂) (∈-i _ x τ x₂ τ₂ ≢-x₂ (∈-b _ x τ)) =
+  ∈-b _ x τ
+p-in-exchange Γ Γ' x τ (exchange aa bb x₁ τ₁ x₂ τ₂ ≢-x₁₂) (∈-b _ x₂ τ₂) with x ≟ x₁
+... | no  ≢-x₁ = ∈-i _ x τ x₁ τ₁ ≢-x₁ (∈-b _ x τ)
+... | yes ≡-x₁ = ∈-i _ x₂ τ₂ x₁ τ₁ (≢-sym ≢-x₁₂) (∈-b _ x₂ τ₂) -}
+
+{-
+  Typing is preserved under exchange.
+-}
+{- p-ty-exchange : ∀ Γ Γ' e τ
+  → Exchange Γ Γ'
   → Γ ⊢ e ∶ τ
   → Γ' ⊢ e ∶ τ
-p-permut Γ Γ' tm-true ty-bool _ (t-true Γ) = t-true Γ'
-p-permut Γ Γ' tm-false ty-bool _ (t-false Γ) = t-false Γ'
-p-permut Γ Γ' (tm-if e₁ e₂ e₃) τ p (t-if Γ τ e₁ e₂ e₃ te₁ te₂ te₃) =
+p-ty-exchange Γ Γ' tm-true ty-bool _ (t-true Γ) = t-true Γ'
+p-ty-exchange Γ Γ' tm-false ty-bool _ (t-false Γ) = t-false Γ'
+p-ty-exchange Γ Γ' (tm-if e₁ e₂ e₃) τ p (t-if Γ τ e₁ e₂ e₃ te₁ te₂ te₃) =
   let te₁' : Γ' ⊢ e₁ ∶ ty-bool
-      te₁' = p-permut Γ Γ' e₁ ty-bool p te₁ in
+      te₁' = p-ty-exchange Γ Γ' e₁ ty-bool p te₁ in
   let te₂' : Γ' ⊢ e₂ ∶ τ
-      te₂' = p-permut Γ Γ' e₂ τ p te₂ in
+      te₂' = p-ty-exchange Γ Γ' e₂ τ p te₂ in
   let te₃' : Γ' ⊢ e₃ ∶ τ
-      te₃' = p-permut Γ Γ' e₃ τ p te₃ in
+      te₃' = p-ty-exchange Γ Γ' e₃ τ p te₃ in
   t-if Γ' τ e₁ e₂ e₃ te₁' te₂' te₃'
-p-permut Γ Γ' (tm-var x) τ p (t-var Γ x τ ∈-x-τ-Γ) =
-  t-var Γ' x τ (p-in-permut Γ Γ' x τ p ∈-x-τ-Γ)
-p-permut Γ Γ' (tm-app e₁ e₂) τ₂ p (t-app Γ e₁ e₂ τ₁ τ₂ te₁ te₂) =
+p-ty-exchange Γ Γ' (tm-var x) τ p (t-var Γ x τ ∈-x-τ-Γ) =
+  t-var Γ' x τ (p-in-exchange Γ Γ' x τ p ∈-x-τ-Γ)
+p-ty-exchange Γ Γ' (tm-app e₁ e₂) τ₂ p (t-app Γ e₁ e₂ τ₁ τ₂ te₁ te₂) =
   let te₁' : Γ' ⊢ e₁ ∶ ty-abs τ₁ τ₂
-      te₁' = p-permut Γ Γ' e₁ (ty-abs τ₁ τ₂) p te₁ in
+      te₁' = p-ty-exchange Γ Γ' e₁ (ty-abs τ₁ τ₂) p te₁ in
   let te₂' : Γ' ⊢ e₂ ∶ τ₂
-      te₂' = p-permut Γ Γ' e₂ τ₂ p te₂ in
+      te₂' = p-ty-exchange Γ Γ' e₂ τ₂ p te₂ in
   t-app Γ' e₁ e₂ τ₁ τ₂ te₁' te₂'
-p-permut Γ Γ' (tm-abs x τ₁ e) _ p (t-abs Γ x τ₁ τ₂ e te₂) =
-  t-abs Γ' x τ₁ τ₂ e _
+p-ty-exchange Γ Γ' (tm-abs x τ₁ e) _ p (t-abs Γ x τ₁ τ₂ e te₂) =
+  t-abs Γ' x τ₁ τ₂ e _ -}
 
 {- p-ty-weak : ∀ x e τ
   → ∅ ⊢ e ∶ τ
