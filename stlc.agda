@@ -2,7 +2,8 @@ open import Data.String
 open import Data.String.Properties using (_≟_)
 open import Relation.Nullary
 open import Relation.Nullary.Decidable
-open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; ≢-sym)
+open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; ≢-sym; subst)
+open import util using (Either; l; r)
 
 infix 22 _⊢_∶_
 infixl 21 _,_∶_
@@ -63,15 +64,33 @@ p-incl-excl (Γ , x ∶ τ) x y τ (∈-b Γ x τ) (∉-i Γ y x τ ≢-yx _) =
 p-incl-excl (Γ , x' ∶ τ') x y τ (∈-i Γ x τ x' τ' _ ∈-x-Γ) (∉-i Γ y x' τ' _ ∉-y-Γ) =
   p-incl-excl Γ x y τ ∈-x-Γ ∉-y-Γ
 
-{-
+{- p-wtf : ∀ Γ₁ Γ₂ x τ
+  → x ∶ τ ∈ Γ₁
+  → x ∉ Γ₂
+  → x ∶ τ ∈ (Γ₁ , Γ₂)
+p-wtf Γ₁ Γ₂ x τ ∈-x-Γ (∉-b x) =
+  ∈-x-Γ -}
+
+p-idk : ∀ Γ₁ Γ₂ x τ
+  → x ∶ τ ∈ (Γ₁ , Γ₂)
+  → x ∉ Γ₂
+  → x ∶ τ ∈ Γ₁
+p-idk Γ₁ Γ₂ x τ ∈-x-Γ (∉-b x) =
+  ∈-x-Γ
+p-idk Γ₁ (Γ₂ , x' ∶ τ') x τ (∈-i _ x τ x' τ' _ ∈-x-Γ) (∉-i Γ₂ x x' τ' _ ∉-x-Γ₂) =
+  p-idk Γ₁ Γ₂ x τ ∈-x-Γ ∉-x-Γ₂
+p-idk Γ₁ (Γ₂ , x ∶ τ) x τ (∈-b _ x τ) p@(∉-i Γ₂ x x' τ' ≢-xx' ∉-x-Γ₂) =
+  p-idk Γ₁ Γ₂ x τ _ ∉-x-Γ₂
+
+{- {-
   Inclusion is preserved under weakening.
 -}
-{- p-in-weaken : ∀ Γ Γ' x τ
+p-in-weaken : ∀ Γ Γ' x τ
   → Weaken Γ Γ'
   → x ∶ τ ∈ Γ
   → x ∶ τ ∈ Γ'
-p-in-weaken Γ Γ' x τ (weaken-∉ Γ₁ Γ₂ x' τ' ∉-i-Γ) a with Γ₁
-... | ∅ = a
+p-in-weaken Γ Γ' x τ (weaken-∉ Γ₁ Γ₂ x' τ' ∉-i-Γ) ∈-x-Γ with Γ₁
+... | ∅ = _
 ... | w , x₂ ∶ x₃ = _ -}
 
 data Term : Set where
@@ -157,6 +176,13 @@ data progress (e : Term) : Set where
     Value e
     → progress e
 
+p-ty-idk : ∀ {Γ Γ' x τ e τₑ}
+  → (Γ , x ∶ τ , Γ') ⊢ e ∶ τₑ
+  → x ∶ τ ∈ Γ'
+  → (Γ , Γ') ⊢ e ∶ τₑ
+p-ty-idk (t-true a) _ = t-true {!!}
+{!!}
+
 {- p-idk : ∀ Γ x τ Γ₁ Γ₂
   → Γ ≡ Γ₁ , Γ₂
   → x ∶ τ ∈ Γ
@@ -213,14 +239,14 @@ p-ty-exchange Γ Γ' (tm-abs x τ₁ e) _ p (t-abs Γ x τ₁ τ₂ e te₂) =
 {-
 p-ty-subst : ∀ Γ x eₓ τₓ e τ e'
   → ∅ ⊢ eₓ ∶ τₓ 
-  → (x ↪ τₓ :: Γ) ⊢ e ∶ τ
+  → (Γ , x ∶ τₓ) ⊢ e ∶ τ
   → e [ eₓ / x ]⇛ e'
   → Γ ⊢ e' ∶ τ
-p-ty-subst Γ x eₓ τₓ e τ e' _ (t-true (x ↪ τₓ :: Γ)) (subst-true x eₓ) = t-true Γ
-p-ty-subst Γ x eₓ τₓ e τ e' _ (t-false (x ↪ τₓ :: Γ)) (subst-false x eₓ) = t-false Γ
-{- p-ty-subst x eₓ τₓ e τ e' teₓ (t-var (x ↪ τₓ :: ∅) y τ (∈-b x τₓ ∅)) (subst-var-ne x eₓ y) = _ {- t-var (x ↪ τₓ :: ∅) x τₓ (∈-b x τₓ ∅) -}
-p-ty-subst x eₓ τₓ e τ e' teₓ (t-var (x ↪ τₓ :: ∅) x τ (∈-b x τₓ ∅)) (subst-var-eq x eₓ) = teₓ -}
-p-ty-subst Γ x eₓ τₓ e τ e' teₓ (t-if (x ↪ τₓ :: Γ) τ e₁ e₂ e₃ te₁ te₂ te₃) (subst-if x eₓ e₁ e₂ e₃ e₁' e₂' e₃' se₁' se₂' se₃') =
+p-ty-subst Γ x eₓ τₓ e τ e' _ (t-true (Γ , x ∶ τₓ)) (subst-true x eₓ) = t-true Γ
+p-ty-subst Γ x eₓ τₓ e τ e' _ (t-false (Γ , x ∶ τₓ)) (subst-false x eₓ) = t-false Γ
+{- p-ty-subst x eₓ τₓ e τ e' teₓ (t-var (Γ , x ∶ τₓ) y τ (∈-b x τₓ ∅)) (subst-var-ne x eₓ y) = _ {- t-var (x ↪ τₓ :: ∅) x τₓ (∈-b x τₓ ∅) -}
+p-ty-subst x eₓ τₓ e τ e' teₓ (t-var (∅ , x ∶ τₓ) x τ (∈-b x τₓ ∅)) (subst-var-eq x eₓ) = teₓ -}
+p-ty-subst Γ x eₓ τₓ e τ e' teₓ (t-if (Γ , x ∶ τₓ) τ e₁ e₂ e₃ te₁ te₂ te₃) (subst-if x eₓ e₁ e₂ e₃ e₁' e₂' e₃' se₁' se₂' se₃') =
   let te₁' : Γ  ⊢ e₁' ∶ ty-bool
       te₁' = p-ty-subst Γ x eₓ τₓ e₁ ty-bool e₁' teₓ te₁ se₁' in
   let te₂' : Γ  ⊢ e₂' ∶ τ
@@ -234,8 +260,8 @@ p-ty-subst Γ x eₓ τₓ e τ e' teₓ (t-if (x ↪ τₓ :: Γ) τ e₁ e₂ 
   let i : (y ↪ τ₁ :: Γ) ⊢ e₂' ∶ τ₂
       i = p-ty-subst (y ↪ τ₁ :: Γ) x eₓ τₓ e₂ τ₂ e₂' teₓ {!  !} se₂' in -}
   t-abs Γ y τ₁ τ₂ e₂' _ -}
-p-ty-subst Γ x eₓ τₓ e τ e' teₓ (t-abs Γ _ _ _ _ _) (subst-abs-eq _ _ _ _ _ _) = _
-p-ty-subst Γ x eₓ τₓ e τ e' teₓ (t-app (x ↪ τₓ :: Γ) e₁ e₂ τ₁ τ₂ te₁ te₂) (subst-app x eₓ e₁ e₂ e₁' e₂' se₁ se₂) =
+p-ty-subst Γ x eₓ τₓ e τ e' teₓ (t-abs (Γ , x ∶ τₓ) x₁ τ₁ τ₂ e₂ te₂) (subst-abs-eq x eₓ x₁ τ₁ e₂ x≡x₁) = t-abs Γ x₁ τ₁ τ₂ e₂ _
+p-ty-subst Γ x eₓ τₓ e τ e' teₓ (t-app (Γ , x ∶ τₓ) e₁ e₂ τ₁ τ₂ te₁ te₂) (subst-app x eₓ e₁ e₂ e₁' e₂' se₁ se₂) =
   let te₁' : Γ ⊢ e₁' ∶ ty-abs τ₁ τ₂
       te₁' = p-ty-subst Γ x eₓ τₓ e₁ (ty-abs τ₁ τ₂) e₁' teₓ te₁ se₁ in
   let te₂' : Γ ⊢ e₂' ∶ τ₂
