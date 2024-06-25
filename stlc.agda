@@ -1,9 +1,10 @@
+open import Data.Product using (_×_) renaming (_,_ to ⟨_,_⟩)
 open import Data.String
 open import Data.String.Properties using (_≟_)
+open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Relation.Nullary
 open import Relation.Nullary.Decidable
-open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; ≢-sym; subst)
-open import util using (Either; l; r)
+open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; ≢-sym; cong; subst; refl)
 
 infix 22 _⊢_∶_
 infixl 21 _,_∶_
@@ -22,6 +23,17 @@ _,_ : Ctx → Ctx → Ctx
 Γ , ∅ = Γ
 Γ , (Γ' , x ∶ τ) = (Γ , Γ') , x ∶ τ
 
+-- The empty context `∅` is a left identity of the context concatenation `,`.
+-- The right identity is true by definition.
+concat-ident-l : ∀ Γ → ∅ , Γ ≡ Γ
+concat-ident-l ∅ = refl
+concat-ident-l (Γ , x ∶ τ) = cong (λ Γ → Γ , x ∶ τ) (concat-ident-l Γ)
+
+-- Honestly, I have no idea what this property is called (does it even have a name ?)
+concat-cons-l : ∀ Γ Γ' x τ → (Γ , x ∶ τ , Γ') ≡ Γ , (∅ , x ∶ τ , Γ')
+concat-cons-l Γ ∅ x τ = refl
+concat-cons-l Γ (Γ' , _ ∶ _) x τ rewrite concat-cons-l Γ Γ' x τ = refl
+
 data _∶_∈_ : String → Type → Ctx → Set where
   ∈-b : ∀ Γ x τ
     → x ∶ τ ∈ Γ , x ∶ τ
@@ -38,6 +50,51 @@ data _∉_ : String → Ctx → Set where
     → x ∉ Γ
     → x ∉ Γ , x' ∶ τ'
 
+-- Given a variable `x` in a context `Γ`, and `y` not in `Γ`, `x` and `y` are distinct.
+in-not-in-distinct : ∀ Γ x y τ
+  → x ∶ τ ∈ Γ
+  → y ∉ Γ
+  → x ≢ y
+in-not-in-distinct ∅ x y τ ()
+in-not-in-distinct (Γ , x ∶ τ) x y τ (∈-b Γ x τ) (∉-i Γ y x τ ≢-yx _) =
+  ≢-sym ≢-yx
+in-not-in-distinct (Γ , x' ∶ τ') x y τ (∈-i Γ x τ x' τ' _ ∈-x-Γ) (∉-i Γ y x' τ' _ ∉-y-Γ) =
+  in-not-in-distinct Γ x y τ ∈-x-Γ ∉-y-Γ
+
+-- Given an association `x ∶ τ` inside a context `Γ₁ , Γ₂`, either `x ∶ τ ∈ Γ₁` and `x ∉ Γ₂`, or `x ∈ Γ₂`.
+in-concat : ∀ Γ₁ Γ₂ x τ
+  → x ∶ τ ∈ (Γ₁ , Γ₂)
+  → x ∶ τ ∈ Γ₁ × x ∉ Γ₂ ⊎ x ∶ τ ∈ Γ₂
+in-concat Γ₁ ∅ x τ x-∈-Γ₁ =
+  inj₁ ⟨ x-∈-Γ₁ , ∉-b x ⟩
+in-concat Γ₁ (Γ₂ , x₂ ∶ τ₂) x τ (∈-b Γ x τ) =
+  inj₂ (∈-b Γ₂ x τ)
+in-concat Γ₁ (Γ₂ , x₂ ∶ τ₂) x τ (∈-i Γ x τ x₂ τ₂ x-≢-x₂ x-∈-Γ) with in-concat Γ₁ Γ₂ x τ x-∈-Γ
+... | inj₁ ⟨ x-∈-Γ₁ , x-∉-Γ₂ ⟩ = inj₁ ⟨ x-∈-Γ₁ , ∉-i Γ₂ x x₂ τ₂ x-≢-x₂ x-∉-Γ₂ ⟩
+... | inj₂ x-∈-Γ₂ = inj₂ (∈-i Γ₂ x τ x₂ τ₂ x-≢-x₂ x-∈-Γ₂)
+
+{- in-weaken-l : ∀ Γ₁ Γ₂ x τ
+  → x ∶ τ ∈ Γ₂
+  → x ∶ τ ∈ (Γ₁ , Γ₂)
+in-weaken-l ∅ Γ₂ x τ (∈-b Γ₂' x τ) rewrite concat-ident-l Γ₂' = ∈-b Γ₂' x τ
+in-weaken-l ∅ (Γ₂ , x₂ ∶ τ₂) x τ (∈-i Γ₂ x τ x₂ τ₂ x-≢-x₂ x-∈-Γ₂) rewrite concat-ident-l Γ₂ = ∈-i Γ₂ x τ x₂ τ₂ x-≢-x₂ x-∈-Γ₂
+in-weaken-l (Γ₁ , x₁ ∶ τ₁) Γ₂ x τ x-∈-Γ₂ = _ -}
+
+{- in-weaken-l (Γ₁ , x₁ ∶ τ₁) (Γ₂ , x₂ ∶ τ₂) x τ (∈-b Γ₂ x τ) = {!!} -}
+  {- let i : ∅ , Γ₂' ≡ Γ₂'
+      i = concat-ident-l Γ₂' in
+  (subst (λ g → _) i (∈-b Γ₂' x τ))  -}
+
+  {- let ∅-Γ₂-≡-Γ₂ : (∅ , Γ₂) ≡ Γ₂
+      ∅-Γ₂-≡-Γ₂ = concat-ident-l Γ₂ in
+  x-∈-Γ₂ -}
+
+{- in-strength : ∀ Γ₁ Γ₂ x τ x' τ'
+  → x ∶ τ ∈ (Γ₁ , x' ∶ τ' , Γ₂)
+  → x ≢ x'
+  → x ∶ τ ∈ (Γ₁ , Γ₂) -}
+{- in-strength Γ₁ (Γ₂ , x ∶ τ) x τ x' τ' (∈-b Γ x τ) x-≢-x' = () -}
+
 data Exchange : Ctx → Ctx → Set where
   exchange : ∀ Γ Γ' x₁ τ₁ x₂ τ₂
     → x₁ ≢ x₂
@@ -47,22 +104,41 @@ data Weaken : Ctx → Ctx → Set where
   weaken-∉ : ∀ Γ₁ Γ₂ x τ
     → x ∉ Γ₁
     → Weaken (Γ₁ , Γ₂) (Γ₁ , x ∶ τ , Γ₂)
-  weaken-∈ : ∀ Γ₁ Γ₂ x τ
-    → x ∶ τ ∈ Γ₂
-    → Weaken (Γ₁ , Γ₂) (Γ₁ , x ∶ τ , Γ₂)
+  weaken-∈ : ∀ Γ₁ Γ₂ x τ₁ τ₂
+    → x ∶ τ₂ ∈ Γ₂
+    → Weaken (Γ₁ , Γ₂) (Γ₁ , x ∶ τ₁ , Γ₂)
 
 {-
-  Included and excluded variables must be distinct.
+-- Inclusion is preserved under weakening.
+p-∈-weaken : ∀ Γ Γ' x τ
+  → Weaken Γ Γ'
+  → x ∶ τ ∈ Γ
+  → x ∶ τ ∈ Γ'
+p-∈-weaken Γ Γ' x τ (weaken-∉ Γ₁ ∅ x' τ' x'-∉-Γ₁) x-∈-Γ =
+  let x-≢-x' : x ≢ x'
+      x-≢-x' = p-∈-∉-distinct Γ x x' τ x-∈-Γ x'-∉-Γ₁ in
+  ∈-i Γ x τ x' τ' x-≢-x' x-∈-Γ
+p-∈-weaken Γ Γ' x τ (weaken-∉ Γ₁ (Γ₂ , x₂ ∶ τ₂) x' τ' x'-∉-Γ₁) x-∈-Γ =
+  _
+  {- WHAT I KNOW:
+     x : τ ∈ Γ₁ , Γ₂ , x₂ : τ₂
+     x' ∉ Γ₁
+    WHAT I MUST PROVE:
+    x : τ ∈ Γ₁ , x' : τ' , Γ₂ , x₂ : τ₂ 
+  -}
 -}
-p-incl-excl : ∀ Γ x y τ
-   → x ∶ τ ∈ Γ
-   → y ∉ Γ
-   → x ≢ y
-p-incl-excl ∅ x y τ ()
-p-incl-excl (Γ , x ∶ τ) x y τ (∈-b Γ x τ) (∉-i Γ y x τ ≢-yx _) =
-  ≢-sym ≢-yx
-p-incl-excl (Γ , x' ∶ τ') x y τ (∈-i Γ x τ x' τ' _ ∈-x-Γ) (∉-i Γ y x' τ' _ ∉-y-Γ) =
-  p-incl-excl Γ x y τ ∈-x-Γ ∉-y-Γ
+
+
+
+{- let x-≢-x'' : x ≢ x''
+      x-≢-x'' = p-∈-∉-distinct _ x x'' _ _ _ in
+  let aa : x ∶ τ ∈ (Γ₁ , x' ∶ τ' , Γ₂)
+      aa = p-∈-weaken (Γ₁ , Γ₂) (Γ₁ , x' ∶ τ' , Γ₂) x τ (weaken-∉ Γ₁ Γ₂ x' τ' x'-∉-Γ₁) _ in
+  ∈-i (Γ₁ , x' ∶ τ' , Γ₂) x τ x'' τ'' x-≢-x'' aa -}
+
+{- p-in-weaken Γ Γ' x τ (weaken-∉ Γ₁ Γ₂ x' τ' ∉-i-Γ) ∈-x-Γ with Γ₂
+... | ∅ = _
+... | w , x₂ ∶ x₃ = _ -}
 
 {- p-wtf : ∀ Γ₁ Γ₂ x τ
   → x ∶ τ ∈ Γ₁
@@ -71,7 +147,7 @@ p-incl-excl (Γ , x' ∶ τ') x y τ (∈-i Γ x τ x' τ' _ ∈-x-Γ) (∉-i Γ
 p-wtf Γ₁ Γ₂ x τ ∈-x-Γ (∉-b x) =
   ∈-x-Γ -}
 
-p-idk : ∀ Γ₁ Γ₂ x τ
+{-p-idk : ∀ Γ₁ Γ₂ x τ
   → x ∶ τ ∈ (Γ₁ , Γ₂)
   → x ∉ Γ₂
   → x ∶ τ ∈ Γ₁
@@ -81,17 +157,7 @@ p-idk Γ₁ (Γ₂ , x' ∶ τ') x τ (∈-i _ x τ x' τ' _ ∈-x-Γ) (∉-i Γ
   p-idk Γ₁ Γ₂ x τ ∈-x-Γ ∉-x-Γ₂
 p-idk Γ₁ (Γ₂ , x ∶ τ) x τ (∈-b _ x τ) p@(∉-i Γ₂ x x' τ' ≢-xx' ∉-x-Γ₂) =
   p-idk Γ₁ Γ₂ x τ _ ∉-x-Γ₂
-
-{- {-
-  Inclusion is preserved under weakening.
 -}
-p-in-weaken : ∀ Γ Γ' x τ
-  → Weaken Γ Γ'
-  → x ∶ τ ∈ Γ
-  → x ∶ τ ∈ Γ'
-p-in-weaken Γ Γ' x τ (weaken-∉ Γ₁ Γ₂ x' τ' ∉-i-Γ) ∈-x-Γ with Γ₁
-... | ∅ = _
-... | w , x₂ ∶ x₃ = _ -}
 
 data Term : Set where
   tm-true  : Term
@@ -176,12 +242,11 @@ data progress (e : Term) : Set where
     Value e
     → progress e
 
-p-ty-idk : ∀ {Γ Γ' x τ e τₑ}
+{- p-ty-idk : ∀ {Γ Γ' x τ e τₑ}
   → (Γ , x ∶ τ , Γ') ⊢ e ∶ τₑ
   → x ∶ τ ∈ Γ'
   → (Γ , Γ') ⊢ e ∶ τₑ
-p-ty-idk (t-true a) _ = t-true {!!}
-{!!}
+p-ty-idk (t-true a) _ = t-true -}
 
 {- p-idk : ∀ Γ x τ Γ₁ Γ₂
   → Γ ≡ Γ₁ , Γ₂
@@ -238,7 +303,7 @@ p-ty-exchange Γ Γ' (tm-abs x τ₁ e) _ p (t-abs Γ x τ₁ τ₂ e te₂) =
 
 {-
 p-ty-subst : ∀ Γ x eₓ τₓ e τ e'
-  → ∅ ⊢ eₓ ∶ τₓ 
+  → ∅ ⊢ eₓ ∶ τₓ
   → (Γ , x ∶ τₓ) ⊢ e ∶ τ
   → e [ eₓ / x ]⇛ e'
   → Γ ⊢ e' ∶ τ
