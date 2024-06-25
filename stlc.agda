@@ -29,7 +29,8 @@ concat-ident-l : ∀ Γ → ∅ , Γ ≡ Γ
 concat-ident-l ∅ = refl
 concat-ident-l (Γ , x ∶ τ) = cong (λ Γ → Γ , x ∶ τ) (concat-ident-l Γ)
 
--- Honestly, I have no idea what this property is called (does it even have a name ?)
+-- The concatenation of a context `Γ`, an association `x ∶ τ`, and another context `Γ'` is equivalent
+-- to the concatenation of `Γ'  with the concatenation of the empty context `∅`, `x ∶ τ`, and `Γ'`.
 concat-cons-l : ∀ Γ Γ' x τ → (Γ , x ∶ τ , Γ') ≡ Γ , (∅ , x ∶ τ , Γ')
 concat-cons-l Γ ∅ x τ = refl
 concat-cons-l Γ (Γ' , _ ∶ _) x τ rewrite concat-cons-l Γ Γ' x τ = refl
@@ -73,21 +74,26 @@ in-concat Γ₁ (Γ₂ , x₂ ∶ τ₂) x τ (∈-i Γ x τ x₂ τ₂ x-≢-x�
 ... | inj₁ ⟨ x-∈-Γ₁ , x-∉-Γ₂ ⟩ = inj₁ ⟨ x-∈-Γ₁ , ∉-i Γ₂ x x₂ τ₂ x-≢-x₂ x-∉-Γ₂ ⟩
 ... | inj₂ x-∈-Γ₂ = inj₂ (∈-i Γ₂ x τ x₂ τ₂ x-≢-x₂ x-∈-Γ₂)
 
-{- in-weaken-l : ∀ Γ₁ Γ₂ x τ
+in-weaken-cons-l : ∀ Γ x τ x' τ'
+  → x ∶ τ ∈ Γ
+  → x ∶ τ ∈ (∅ , x' ∶ τ' , Γ)
+in-weaken-cons-l (Γ , x ∶ τ) x τ x' τ' (∈-b Γ x τ) = ∈-b (∅ , x' ∶ τ' , Γ) x τ
+in-weaken-cons-l (Γ , x'' ∶ τ'') x τ x' τ' (∈-i Γ x τ x'' τ'' x-≢-x'' x-∈-Γ) =
+  let x-∈-Γ' : x ∶ τ ∈ (∅ , x' ∶ τ' , Γ)
+      x-∈-Γ' = in-weaken-cons-l Γ x τ x' τ' x-∈-Γ in
+  ∈-i (∅ , x' ∶ τ' , Γ) x τ x'' τ'' x-≢-x'' x-∈-Γ'
+
+in-weaken-l : ∀ Γ₁ Γ₂ x τ
   → x ∶ τ ∈ Γ₂
   → x ∶ τ ∈ (Γ₁ , Γ₂)
-in-weaken-l ∅ Γ₂ x τ (∈-b Γ₂' x τ) rewrite concat-ident-l Γ₂' = ∈-b Γ₂' x τ
-in-weaken-l ∅ (Γ₂ , x₂ ∶ τ₂) x τ (∈-i Γ₂ x τ x₂ τ₂ x-≢-x₂ x-∈-Γ₂) rewrite concat-ident-l Γ₂ = ∈-i Γ₂ x τ x₂ τ₂ x-≢-x₂ x-∈-Γ₂
-in-weaken-l (Γ₁ , x₁ ∶ τ₁) Γ₂ x τ x-∈-Γ₂ = _ -}
-
-{- in-weaken-l (Γ₁ , x₁ ∶ τ₁) (Γ₂ , x₂ ∶ τ₂) x τ (∈-b Γ₂ x τ) = {!!} -}
-  {- let i : ∅ , Γ₂' ≡ Γ₂'
-      i = concat-ident-l Γ₂' in
-  (subst (λ g → _) i (∈-b Γ₂' x τ))  -}
-
-  {- let ∅-Γ₂-≡-Γ₂ : (∅ , Γ₂) ≡ Γ₂
-      ∅-Γ₂-≡-Γ₂ = concat-ident-l Γ₂ in
-  x-∈-Γ₂ -}
+in-weaken-l ∅ Γ₂ x τ (∈-b Γ₂' x τ) rewrite concat-ident-l Γ₂' =
+  ∈-b Γ₂' x τ
+in-weaken-l ∅ (Γ₂ , x₂ ∶ τ₂) x τ (∈-i Γ₂ x τ x₂ τ₂ x-≢-x₂ x-∈-Γ₂) rewrite concat-ident-l Γ₂ =
+  ∈-i Γ₂ x τ x₂ τ₂ x-≢-x₂ x-∈-Γ₂
+in-weaken-l (Γ₁ , x₁ ∶ τ₁) Γ₂ x τ x-∈-Γ₂ rewrite concat-cons-l Γ₁ Γ₂ x₁ τ₁ =
+  let x-∈-Γ₂' : x ∶ τ ∈ (∅ , x₁ ∶ τ₁ , Γ₂)
+      x-∈-Γ₂' = in-weaken-cons-l Γ₂ x τ x₁ τ₁ x-∈-Γ₂ in
+  in-weaken-l Γ₁ (∅ , x₁ ∶ τ₁ , Γ₂) x τ x-∈-Γ₂'
 
 {- in-strength : ∀ Γ₁ Γ₂ x τ x' τ'
   → x ∶ τ ∈ (Γ₁ , x' ∶ τ' , Γ₂)
