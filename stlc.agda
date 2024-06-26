@@ -86,26 +86,26 @@ in-out-concat Γ₁ (Γ₂ , x₂ ∶ τ₂) x τ x-∈-Γ₁ (∉-i Γ₂ x x�
       x-∈-Γ' = in-out-concat Γ₁ Γ₂ x τ x-∈-Γ₁ x-∉-Γ₂ in
   ∈-i (Γ₁ , Γ₂) x τ x₂ τ₂ x-≢-x₂ x-∈-Γ'
 
-in-weaken-cons-l : ∀ Γ x τ x' τ'
+in-cons-l : ∀ Γ x τ x' τ'
   → x ∶ τ ∈ Γ
   → x ∶ τ ∈ (∅ , x' ∶ τ' , Γ)
-in-weaken-cons-l (Γ , x ∶ τ) x τ x' τ' (∈-b Γ x τ) = ∈-b (∅ , x' ∶ τ' , Γ) x τ
-in-weaken-cons-l (Γ , x'' ∶ τ'') x τ x' τ' (∈-i Γ x τ x'' τ'' x-≢-x'' x-∈-Γ) =
+in-cons-l (Γ , x ∶ τ) x τ x' τ' (∈-b Γ x τ) = ∈-b (∅ , x' ∶ τ' , Γ) x τ
+in-cons-l (Γ , x'' ∶ τ'') x τ x' τ' (∈-i Γ x τ x'' τ'' x-≢-x'' x-∈-Γ) =
   let x-∈-Γ' : x ∶ τ ∈ (∅ , x' ∶ τ' , Γ)
-      x-∈-Γ' = in-weaken-cons-l Γ x τ x' τ' x-∈-Γ in
+      x-∈-Γ' = in-cons-l Γ x τ x' τ' x-∈-Γ in
   ∈-i (∅ , x' ∶ τ' , Γ) x τ x'' τ'' x-≢-x'' x-∈-Γ'
 
-in-weaken-l : ∀ Γ₁ Γ₂ x τ
+in-concat-l : ∀ Γ₁ Γ₂ x τ
   → x ∶ τ ∈ Γ₂
   → x ∶ τ ∈ (Γ₁ , Γ₂)
-in-weaken-l ∅ Γ₂ x τ (∈-b Γ₂' x τ) rewrite concat-ident-l Γ₂' =
+in-concat-l ∅ Γ₂ x τ (∈-b Γ₂' x τ) rewrite concat-ident-l Γ₂' =
   ∈-b Γ₂' x τ
-in-weaken-l ∅ (Γ₂ , x₂ ∶ τ₂) x τ (∈-i Γ₂ x τ x₂ τ₂ x-≢-x₂ x-∈-Γ₂) rewrite concat-ident-l Γ₂ =
+in-concat-l ∅ (Γ₂ , x₂ ∶ τ₂) x τ (∈-i Γ₂ x τ x₂ τ₂ x-≢-x₂ x-∈-Γ₂) rewrite concat-ident-l Γ₂ =
   ∈-i Γ₂ x τ x₂ τ₂ x-≢-x₂ x-∈-Γ₂
-in-weaken-l (Γ₁ , x₁ ∶ τ₁) Γ₂ x τ x-∈-Γ₂ rewrite concat-cons-l Γ₁ Γ₂ x₁ τ₁ =
+in-concat-l (Γ₁ , x₁ ∶ τ₁) Γ₂ x τ x-∈-Γ₂ rewrite concat-cons-l Γ₁ Γ₂ x₁ τ₁ =
   let x-∈-Γ₂' : x ∶ τ ∈ (∅ , x₁ ∶ τ₁ , Γ₂)
-      x-∈-Γ₂' = in-weaken-cons-l Γ₂ x τ x₁ τ₁ x-∈-Γ₂ in
-  in-weaken-l Γ₁ (∅ , x₁ ∶ τ₁ , Γ₂) x τ x-∈-Γ₂'
+      x-∈-Γ₂' = in-cons-l Γ₂ x τ x₁ τ₁ x-∈-Γ₂ in
+  in-concat-l Γ₁ (∅ , x₁ ∶ τ₁ , Γ₂) x τ x-∈-Γ₂'
 
 {- in-strength : ∀ Γ₁ Γ₂ x τ x' τ'
   → x ∶ τ ∈ (Γ₁ , x' ∶ τ' , Γ₂)
@@ -118,42 +118,46 @@ data Exchange : Ctx → Ctx → Set where
     → x₁ ≢ x₂
     → Exchange (Γ , x₁ ∶ τ₁ , x₂ ∶ τ₂ , Γ') (Γ , x₂ ∶ τ₂ , x₁ ∶ τ₁ , Γ')
 
-data Weaken : Ctx → Ctx → Set where
-  weaken-∉ : ∀ Γ₁ Γ₂ x τ
+-- Extension of a context (or weakening of the proofs that use it).
+data Extend : Ctx → Ctx → Set where
+  extend-∉ : ∀ Γ₁ Γ₂ x τ
     → x ∉ Γ₁
-    → Weaken (Γ₁ , Γ₂) (Γ₁ , x ∶ τ , Γ₂)
-  weaken-∈ : ∀ Γ₁ Γ₂ x τ τ₂
+    → Extend (Γ₁ , Γ₂) (Γ₁ , x ∶ τ , Γ₂)
+  extend-∈ : ∀ Γ₁ Γ₂ x τ τ₂
     → x ∶ τ₂ ∈ Γ₂
-    → Weaken (Γ₁ , Γ₂) (Γ₁ , x ∶ τ , Γ₂)
+    → Extend (Γ₁ , Γ₂) (Γ₁ , x ∶ τ , Γ₂)
 
--- Inclusion is preserved under weakening.
-in-weaken : ∀ Γ Γ' x τ
-  → Weaken Γ Γ'
+-- Extension is preserved under appending.
+extend-cons : ∀ Γ Γ' x τ
+  → Extend Γ Γ'
+  → Extend (Γ , x ∶ τ) (Γ' , x ∶ τ)
+extend-cons _ _ x τ (extend-∉ Γ₁ Γ₂ x' τ' x'-∉-Γ₁) =
+  extend-∉ Γ₁ (Γ₂ , x ∶ τ) x' τ' x'-∉-Γ₁
+extend-cons _ _ x τ (extend-∈ Γ₁ Γ₂ x' τ' τ₂ x'-∈-Γ₂) with x ≟ x'
+... | yes x-≡-x' rewrite sym x-≡-x' = extend-∈ Γ₁ (Γ₂ , x ∶ τ) x τ' τ (∈-b Γ₂ x τ)
+... | no  x-≢-x' = extend-∈ Γ₁ (Γ₂ , x ∶ τ) x' τ' τ₂ (∈-i Γ₂ x' τ₂ x τ (≢-sym x-≢-x') x'-∈-Γ₂)
+
+-- Inclusion is preserved under extension.
+in-extend : ∀ Γ Γ' x τ
+  → Extend Γ Γ'
   → x ∶ τ ∈ Γ
   → x ∶ τ ∈ Γ'
-in-weaken Γ Γ' x τ (weaken-∈ Γ₁ Γ₂ x' τ' τ₂ x'-∈-Γ₂) x-∈-Γ with in-concat Γ₁ Γ₂ x τ x-∈-Γ
+in-extend Γ Γ' x τ (extend-∈ Γ₁ Γ₂ x' τ' τ₂ x'-∈-Γ₂) x-∈-Γ with in-concat Γ₁ Γ₂ x τ x-∈-Γ
 ... | inj₁ ⟨ x-∈-Γ₁ , x-∉-Γ₂ ⟩ =
   let x-≢-x' : x ≢ x'
       x-≢-x' = ≢-sym (in-out-distinct Γ₂ x' x τ₂ x'-∈-Γ₂ x-∉-Γ₂) in
   let x-∈-Γ' : x ∶ τ ∈ (Γ₁ , x' ∶ τ') 
       x-∈-Γ' = ∈-i Γ₁ x τ x' τ' x-≢-x' x-∈-Γ₁ in
   in-out-concat (Γ₁ , x' ∶ τ') Γ₂ x τ x-∈-Γ' x-∉-Γ₂
-... | inj₂ x-∈-Γ₂ = in-weaken-l (Γ₁ , x' ∶ τ') Γ₂ x τ x-∈-Γ₂
-in-weaken Γ Γ' x τ (weaken-∉ Γ₁ Γ₂ x' τ' x'-∉-Γ₁) x-∈-Γ with in-concat Γ₁ Γ₂ x τ x-∈-Γ
+... | inj₂ x-∈-Γ₂ = in-concat-l (Γ₁ , x' ∶ τ') Γ₂ x τ x-∈-Γ₂
+in-extend Γ Γ' x τ (extend-∉ Γ₁ Γ₂ x' τ' x'-∉-Γ₁) x-∈-Γ with in-concat Γ₁ Γ₂ x τ x-∈-Γ
 ... | inj₁ ⟨ x-∈-Γ₁ , x-∉-Γ₂ ⟩ =
   let x-≢-x' : x ≢ x'
       x-≢-x' = in-out-distinct Γ₁ x x' τ x-∈-Γ₁ x'-∉-Γ₁ in
   let x-∈-Γ' : x ∶ τ ∈ (Γ₁ , x' ∶ τ')
       x-∈-Γ' = ∈-i Γ₁ x τ x' τ' x-≢-x' x-∈-Γ₁ in
   in-out-concat (Γ₁ , x' ∶ τ') Γ₂ x τ x-∈-Γ' x-∉-Γ₂
-... | inj₂ x-∈-Γ₂ = in-weaken-l (Γ₁ , x' ∶ τ') Γ₂ x τ x-∈-Γ₂
-
-{- p-wtf : ∀ Γ₁ Γ₂ x τ
-  → x ∶ τ ∈ Γ₁
-  → x ∉ Γ₂
-  → x ∶ τ ∈ (Γ₁ , Γ₂)
-p-wtf Γ₁ Γ₂ x τ ∈-x-Γ (∉-b x) =
-  ∈-x-Γ -}
+... | inj₂ x-∈-Γ₂ = in-concat-l (Γ₁ , x' ∶ τ') Γ₂ x τ x-∈-Γ₂
 
 {-p-idk : ∀ Γ₁ Γ₂ x τ
   → x ∶ τ ∈ (Γ₁ , Γ₂)
@@ -214,12 +218,12 @@ data _⊢_∶_ : Ctx → Term → Type → Set where
     → Γ ⊢ e₂ ∶ τ
     → Γ ⊢ e₃ ∶ τ
     → Γ ⊢ tm-if e₁ e₂ e₃ ∶ τ
-  t-abs : ∀ Γ x τ₁ τ₂ e
+  t-abs : ∀ Γ x e τ₁ τ₂
     → (Γ , x ∶ τ₁) ⊢ e ∶ τ₂
     → Γ ⊢ tm-abs x τ₁ e ∶ ty-abs τ₁ τ₂
   t-app : ∀ Γ e₁ e₂ τ₁ τ₂
     → Γ ⊢ e₁ ∶ ty-abs τ₁ τ₂
-    → Γ ⊢ e₂ ∶ τ₂
+    → Γ ⊢ e₂ ∶ τ₁
     → Γ ⊢ tm-app e₁ e₂ ∶ τ₂
 
 data Value : Term → Set where
@@ -305,20 +309,50 @@ p-ty-exchange Γ Γ' (tm-app e₁ e₂) τ₂ p (t-app Γ e₁ e₂ τ₁ τ₂ 
 p-ty-exchange Γ Γ' (tm-abs x τ₁ e) _ p (t-abs Γ x τ₁ τ₂ e te₂) =
   t-abs Γ' x τ₁ τ₂ e _ -}
 
-{- p-ty-weak : ∀ x e τ
-  → ∅ ⊢ e ∶ τ
-  → (x ↪ τ :: ∅) ⊢ e ∶ τ -}
+-- Typing is preserved under weakening
+ty-weaken : ∀ Γ Γ' e τ
+  → Extend Γ Γ'
+  → Γ ⊢ e ∶ τ
+  → Γ' ⊢ e ∶ τ
+ty-weaken Γ Γ' _ _ _ (t-true Γ) = t-true Γ'
+ty-weaken Γ Γ' _ _ _  (t-false Γ) = t-false Γ'
+ty-weaken Γ Γ' _ _ w (t-var Γ x τ x-∈-Γ) =
+  let x-∈-Γ' : x ∶ τ ∈ Γ'
+      x-∈-Γ' = in-extend Γ Γ' x τ w x-∈-Γ in
+  t-var Γ' x τ x-∈-Γ'
+ty-weaken Γ Γ' _ τ w (t-if Γ τ e₁ e₂ e₃ te₁ te₂ te₃) =
+  let te₁' : Γ' ⊢ e₁ ∶ ty-bool
+      te₁' = ty-weaken Γ Γ' e₁ ty-bool w te₁ in
+  let te₂' : Γ' ⊢ e₂ ∶ τ
+      te₂' = ty-weaken Γ Γ' e₂ τ w te₂ in
+  let te₃' : Γ' ⊢ e₃ ∶ τ
+      te₃' = ty-weaken Γ Γ' e₃ τ w te₃ in
+  t-if Γ' τ e₁ e₂ e₃ te₁' te₂' te₃'
+ty-weaken Γ Γ' _ _ w (t-abs Γ x e₂ τ₁ τ₂ te₂) =
+  let w' : Extend (Γ , x ∶ τ₁) (Γ' , x ∶ τ₁)
+      w' = extend-cons Γ Γ' x τ₁ w in
+  let te₂' : (Γ' , x ∶ τ₁) ⊢ e₂ ∶ τ₂ 
+      te₂' = ty-weaken (Γ , x ∶ τ₁) (Γ' , x ∶ τ₁) e₂ τ₂ w' te₂ in
+  t-abs Γ' x e₂ τ₁ τ₂ te₂'
+ty-weaken Γ Γ' _ τ w (t-app Γ e₁ e₂ τ₁ τ te₁ te₂) =
+  let te₁' : Γ' ⊢ e₁ ∶ ty-abs τ₁ τ 
+      te₁' = ty-weaken Γ Γ' e₁ (ty-abs τ₁ τ) w te₁ in
+  let te₂' : Γ' ⊢ e₂ ∶ τ₁
+      te₂' = ty-weaken Γ Γ' e₂ τ₁ w te₂ in
+  t-app Γ' e₁ e₂ τ₁ τ te₁' te₂'
 
-{-
+{- -- Typing is preserved under substitution
 p-ty-subst : ∀ Γ x eₓ τₓ e τ e'
   → ∅ ⊢ eₓ ∶ τₓ
   → (Γ , x ∶ τₓ) ⊢ e ∶ τ
   → e [ eₓ / x ]⇛ e'
   → Γ ⊢ e' ∶ τ
-p-ty-subst Γ x eₓ τₓ e τ e' _ (t-true (Γ , x ∶ τₓ)) (subst-true x eₓ) = t-true Γ
-p-ty-subst Γ x eₓ τₓ e τ e' _ (t-false (Γ , x ∶ τₓ)) (subst-false x eₓ) = t-false Γ
-{- p-ty-subst x eₓ τₓ e τ e' teₓ (t-var (Γ , x ∶ τₓ) y τ (∈-b x τₓ ∅)) (subst-var-ne x eₓ y) = _ {- t-var (x ↪ τₓ :: ∅) x τₓ (∈-b x τₓ ∅) -}
-p-ty-subst x eₓ τₓ e τ e' teₓ (t-var (∅ , x ∶ τₓ) x τ (∈-b x τₓ ∅)) (subst-var-eq x eₓ) = teₓ -}
+p-ty-subst Γ x eₓ τₓ e τ e' _ (t-true (Γ , x ∶ τₓ)) (subst-true x eₓ) =
+  t-true Γ
+p-ty-subst Γ x eₓ τₓ e τ e' _ (t-false (Γ , x ∶ τₓ)) (subst-false x eₓ) =
+  t-false Γ
+{- p-ty-subst x eₓ τₓ e τ e' teₓ (t-var (Γ , x ∶ τₓ) y τ (∈-b x τₓ ∅)) (subst-var-ne x eₓ y) = _ {- t-var (x ↪ τₓ :: ∅) x τₓ (∈-b x τₓ ∅) -} -}
+{- p-ty-subst Γ x eₓ τₓ e τ e' teₓ {- (t-var (_ , x ∶ τₓ) x τ (∈-b x τₓ _))-} _ (subst-var-eq x eₓ) = _ -}
 p-ty-subst Γ x eₓ τₓ e τ e' teₓ (t-if (Γ , x ∶ τₓ) τ e₁ e₂ e₃ te₁ te₂ te₃) (subst-if x eₓ e₁ e₂ e₃ e₁' e₂' e₃' se₁' se₂' se₃') =
   let te₁' : Γ  ⊢ e₁' ∶ ty-bool
       te₁' = p-ty-subst Γ x eₓ τₓ e₁ ty-bool e₁' teₓ te₁ se₁' in
@@ -333,7 +367,11 @@ p-ty-subst Γ x eₓ τₓ e τ e' teₓ (t-if (Γ , x ∶ τₓ) τ e₁ e₂ e
   let i : (y ↪ τ₁ :: Γ) ⊢ e₂' ∶ τ₂
       i = p-ty-subst (y ↪ τ₁ :: Γ) x eₓ τₓ e₂ τ₂ e₂' teₓ {!  !} se₂' in -}
   t-abs Γ y τ₁ τ₂ e₂' _ -}
-p-ty-subst Γ x eₓ τₓ e τ e' teₓ (t-abs (Γ , x ∶ τₓ) x₁ τ₁ τ₂ e₂ te₂) (subst-abs-eq x eₓ x₁ τ₁ e₂ x≡x₁) = t-abs Γ x₁ τ₁ τ₂ e₂ _
+{- p-ty-subst Γ x eₓ τₓ e τ e' teₓ (t-abs (Γ , x ∶ τₓ) x₁ τ₁ τ₂ e₂ te₂) (subst-abs-eq x eₓ x₁ τ₁ e₂ x-≡-x₁) =
+  let e₂-∶-τ₂ : 
+      e₂-∶-τ₂ = _ in
+      
+  t-abs Γ x τ₁ τ₂ e₂ _ -}
 p-ty-subst Γ x eₓ τₓ e τ e' teₓ (t-app (Γ , x ∶ τₓ) e₁ e₂ τ₁ τ₂ te₁ te₂) (subst-app x eₓ e₁ e₂ e₁' e₂' se₁ se₂) =
   let te₁' : Γ ⊢ e₁' ∶ ty-abs τ₁ τ₂
       te₁' = p-ty-subst Γ x eₓ τₓ e₁ (ty-abs τ₁ τ₂) e₁' teₓ te₁ se₁ in
