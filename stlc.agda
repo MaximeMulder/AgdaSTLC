@@ -4,7 +4,7 @@ open import Data.String.Properties using (_≟_)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Relation.Nullary
 open import Relation.Nullary.Decidable
-open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; ≢-sym; cong; subst; refl)
+open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; sym; ≢-sym; cong; refl)
 
 infix 22 _⊢_∶_
 infixl 21 _,_∶_
@@ -51,18 +51,18 @@ data _∉_ : String → Ctx → Set where
     → x ∉ Γ
     → x ∉ Γ , x' ∶ τ'
 
--- Given a variable `x` in a context `Γ`, and `y` not in `Γ`, `x` and `y` are distinct.
-in-not-in-distinct : ∀ Γ x y τ
+-- Given a variable `x` in a context `Γ`, and `x'` not in `Γ`, `x` and `x'` are distinct.
+in-out-distinct : ∀ Γ x y τ
   → x ∶ τ ∈ Γ
   → y ∉ Γ
   → x ≢ y
-in-not-in-distinct ∅ x y τ ()
-in-not-in-distinct (Γ , x ∶ τ) x y τ (∈-b Γ x τ) (∉-i Γ y x τ ≢-yx _) =
+in-out-distinct ∅ x y τ ()
+in-out-distinct (Γ , x ∶ τ) x y τ (∈-b Γ x τ) (∉-i Γ y x τ ≢-yx _) =
   ≢-sym ≢-yx
-in-not-in-distinct (Γ , x' ∶ τ') x y τ (∈-i Γ x τ x' τ' _ ∈-x-Γ) (∉-i Γ y x' τ' _ ∉-y-Γ) =
-  in-not-in-distinct Γ x y τ ∈-x-Γ ∉-y-Γ
+in-out-distinct (Γ , x' ∶ τ') x y τ (∈-i Γ x τ x' τ' _ ∈-x-Γ) (∉-i Γ y x' τ' _ ∉-y-Γ) =
+  in-out-distinct Γ x y τ ∈-x-Γ ∉-y-Γ
 
--- Given an association `x ∶ τ` inside a context `Γ₁ , Γ₂`, either `x ∶ τ ∈ Γ₁` and `x ∉ Γ₂`, or `x ∈ Γ₂`.
+-- Given an association `x ∶ τ` inside a context `Γ₁ , Γ₂`, then either `x ∶ τ ∈ Γ₁` and `x ∉ Γ₂`, or `x ∈ Γ₂`.
 in-concat : ∀ Γ₁ Γ₂ x τ
   → x ∶ τ ∈ (Γ₁ , Γ₂)
   → x ∶ τ ∈ Γ₁ × x ∉ Γ₂ ⊎ x ∶ τ ∈ Γ₂
@@ -73,6 +73,18 @@ in-concat Γ₁ (Γ₂ , x₂ ∶ τ₂) x τ (∈-b Γ x τ) =
 in-concat Γ₁ (Γ₂ , x₂ ∶ τ₂) x τ (∈-i Γ x τ x₂ τ₂ x-≢-x₂ x-∈-Γ) with in-concat Γ₁ Γ₂ x τ x-∈-Γ
 ... | inj₁ ⟨ x-∈-Γ₁ , x-∉-Γ₂ ⟩ = inj₁ ⟨ x-∈-Γ₁ , ∉-i Γ₂ x x₂ τ₂ x-≢-x₂ x-∉-Γ₂ ⟩
 ... | inj₂ x-∈-Γ₂ = inj₂ (∈-i Γ₂ x τ x₂ τ₂ x-≢-x₂ x-∈-Γ₂)
+
+-- Given an association `x ∶ τ` inside a context `Γ₁`, and `x` outside of a context `Γ₂`, then `x ∶ τ` is inside
+-- the concatenation of `Γ₁` and `Γ₂`.
+in-out-concat : ∀ Γ₁ Γ₂ x τ
+ → x ∶ τ ∈ Γ₁
+ → x ∉ Γ₂
+ → x ∶ τ ∈ (Γ₁ , Γ₂)
+in-out-concat Γ₁ ∅ x τ x-∈-Γ₁ x-∉-Γ₂ = x-∈-Γ₁
+in-out-concat Γ₁ (Γ₂ , x₂ ∶ τ₂) x τ x-∈-Γ₁ (∉-i Γ₂ x x₂ τ₂ x-≢-x₂ x-∉-Γ₂) =
+  let x-∈-Γ' : x ∶ τ ∈ (Γ₁ , Γ₂)
+      x-∈-Γ' = in-out-concat Γ₁ Γ₂ x τ x-∈-Γ₁ x-∉-Γ₂ in
+  ∈-i (Γ₁ , Γ₂) x τ x₂ τ₂ x-≢-x₂ x-∈-Γ'
 
 in-weaken-cons-l : ∀ Γ x τ x' τ'
   → x ∶ τ ∈ Γ
@@ -110,29 +122,50 @@ data Weaken : Ctx → Ctx → Set where
   weaken-∉ : ∀ Γ₁ Γ₂ x τ
     → x ∉ Γ₁
     → Weaken (Γ₁ , Γ₂) (Γ₁ , x ∶ τ , Γ₂)
-  weaken-∈ : ∀ Γ₁ Γ₂ x τ₁ τ₂
-    → x ∶ τ₂ ∈ Γ₂
-    → Weaken (Γ₁ , Γ₂) (Γ₁ , x ∶ τ₁ , Γ₂)
+  weaken-∈ : ∀ Γ₁ Γ₂ x τ τ'
+    → x ∶ τ ∈ Γ₂
+    → Weaken (Γ₁ , Γ₂) (Γ₁ , x ∶ τ' , Γ₂)
 
-{-
 -- Inclusion is preserved under weakening.
-p-∈-weaken : ∀ Γ Γ' x τ
+in-weaken : ∀ Γ Γ' x τ
   → Weaken Γ Γ'
   → x ∶ τ ∈ Γ
   → x ∶ τ ∈ Γ'
-p-∈-weaken Γ Γ' x τ (weaken-∉ Γ₁ ∅ x' τ' x'-∉-Γ₁) x-∈-Γ =
+in-weaken Γ Γ' x τ (weaken-∈ Γ₁ Γ₂ x' τ' τ'' x'-∈-Γ₂) x-∈-Γ with in-concat Γ₁ Γ₂ x τ x-∈-Γ
+... | inj₁ ⟨ x-∈-Γ₁ , x-∉-Γ₂ ⟩ =
   let x-≢-x' : x ≢ x'
-      x-≢-x' = p-∈-∉-distinct Γ x x' τ x-∈-Γ x'-∉-Γ₁ in
+      x-≢-x' = ≢-sym (in-out-distinct Γ₂ x' x τ' x'-∈-Γ₂ x-∉-Γ₂) in
+  let x-∈-Γ' : x ∶ τ ∈ (Γ₁ , x' ∶ τ'') 
+      x-∈-Γ' = ∈-i Γ₁ x τ x' τ'' x-≢-x' x-∈-Γ₁ in
+  in-out-concat (Γ₁ , x' ∶ τ'') Γ₂ x τ x-∈-Γ' x-∉-Γ₂
+... | inj₂ x-∈-Γ₂ = in-weaken-l (Γ₁ , x' ∶ τ'') Γ₂ x τ x-∈-Γ₂
+
+
+{- in-weaken Γ Γ' x τ (weaken-∈ Γ₁ Γ₂ x' τ' τ'' x'-∈-Γ₂) x-∈-Γ with x ≟ x'
+... | yes x-≡-x' rewrite (sym x-≡-x') =
+  let a : x ∶ τ ∈ Γ₂ 
+      a = x'-∈-Γ₂ in
+      _ {- in-weaken-l (Γ₁ , x ∶ τ) Γ₂ x τ' x'-∈-Γ₂ -}
+... | no  x-≢-x' = _ -}
+
+
+
+{- in-weaken Γ Γ' x τ (weaken-∉ Γ₁ ∅ x' τ' x'-∉-Γ₁) x-∈-Γ =
+  let x-≢-x' : x ≢ x'
+      x-≢-x' = in-not-in-distinct Γ x x' τ x-∈-Γ x'-∉-Γ₁ in
   ∈-i Γ x τ x' τ' x-≢-x' x-∈-Γ
-p-∈-weaken Γ Γ' x τ (weaken-∉ Γ₁ (Γ₂ , x₂ ∶ τ₂) x' τ' x'-∉-Γ₁) x-∈-Γ =
-  _
+in-weaken Γ Γ' x τ (weaken-∉ Γ₁ (Γ₂ , x₂ ∶ τ₂) x' τ' x'-∉-Γ₁) x-∈-Γ =
+  let : 
+      = in
+  _ -}
+
   {- WHAT I KNOW:
      x : τ ∈ Γ₁ , Γ₂ , x₂ : τ₂
      x' ∉ Γ₁
     WHAT I MUST PROVE:
     x : τ ∈ Γ₁ , x' : τ' , Γ₂ , x₂ : τ₂ 
   -}
--}
+
 
 
 
