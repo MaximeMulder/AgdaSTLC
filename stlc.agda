@@ -122,62 +122,31 @@ data Weaken : Ctx → Ctx → Set where
   weaken-∉ : ∀ Γ₁ Γ₂ x τ
     → x ∉ Γ₁
     → Weaken (Γ₁ , Γ₂) (Γ₁ , x ∶ τ , Γ₂)
-  weaken-∈ : ∀ Γ₁ Γ₂ x τ τ'
-    → x ∶ τ ∈ Γ₂
-    → Weaken (Γ₁ , Γ₂) (Γ₁ , x ∶ τ' , Γ₂)
+  weaken-∈ : ∀ Γ₁ Γ₂ x τ τ₂
+    → x ∶ τ₂ ∈ Γ₂
+    → Weaken (Γ₁ , Γ₂) (Γ₁ , x ∶ τ , Γ₂)
 
 -- Inclusion is preserved under weakening.
 in-weaken : ∀ Γ Γ' x τ
   → Weaken Γ Γ'
   → x ∶ τ ∈ Γ
   → x ∶ τ ∈ Γ'
-in-weaken Γ Γ' x τ (weaken-∈ Γ₁ Γ₂ x' τ' τ'' x'-∈-Γ₂) x-∈-Γ with in-concat Γ₁ Γ₂ x τ x-∈-Γ
+in-weaken Γ Γ' x τ (weaken-∈ Γ₁ Γ₂ x' τ' τ₂ x'-∈-Γ₂) x-∈-Γ with in-concat Γ₁ Γ₂ x τ x-∈-Γ
 ... | inj₁ ⟨ x-∈-Γ₁ , x-∉-Γ₂ ⟩ =
   let x-≢-x' : x ≢ x'
-      x-≢-x' = ≢-sym (in-out-distinct Γ₂ x' x τ' x'-∈-Γ₂ x-∉-Γ₂) in
-  let x-∈-Γ' : x ∶ τ ∈ (Γ₁ , x' ∶ τ'') 
-      x-∈-Γ' = ∈-i Γ₁ x τ x' τ'' x-≢-x' x-∈-Γ₁ in
-  in-out-concat (Γ₁ , x' ∶ τ'') Γ₂ x τ x-∈-Γ' x-∉-Γ₂
-... | inj₂ x-∈-Γ₂ = in-weaken-l (Γ₁ , x' ∶ τ'') Γ₂ x τ x-∈-Γ₂
-
-
-{- in-weaken Γ Γ' x τ (weaken-∈ Γ₁ Γ₂ x' τ' τ'' x'-∈-Γ₂) x-∈-Γ with x ≟ x'
-... | yes x-≡-x' rewrite (sym x-≡-x') =
-  let a : x ∶ τ ∈ Γ₂ 
-      a = x'-∈-Γ₂ in
-      _ {- in-weaken-l (Γ₁ , x ∶ τ) Γ₂ x τ' x'-∈-Γ₂ -}
-... | no  x-≢-x' = _ -}
-
-
-
-{- in-weaken Γ Γ' x τ (weaken-∉ Γ₁ ∅ x' τ' x'-∉-Γ₁) x-∈-Γ =
+      x-≢-x' = ≢-sym (in-out-distinct Γ₂ x' x τ₂ x'-∈-Γ₂ x-∉-Γ₂) in
+  let x-∈-Γ' : x ∶ τ ∈ (Γ₁ , x' ∶ τ') 
+      x-∈-Γ' = ∈-i Γ₁ x τ x' τ' x-≢-x' x-∈-Γ₁ in
+  in-out-concat (Γ₁ , x' ∶ τ') Γ₂ x τ x-∈-Γ' x-∉-Γ₂
+... | inj₂ x-∈-Γ₂ = in-weaken-l (Γ₁ , x' ∶ τ') Γ₂ x τ x-∈-Γ₂
+in-weaken Γ Γ' x τ (weaken-∉ Γ₁ Γ₂ x' τ' x'-∉-Γ₁) x-∈-Γ with in-concat Γ₁ Γ₂ x τ x-∈-Γ
+... | inj₁ ⟨ x-∈-Γ₁ , x-∉-Γ₂ ⟩ =
   let x-≢-x' : x ≢ x'
-      x-≢-x' = in-not-in-distinct Γ x x' τ x-∈-Γ x'-∉-Γ₁ in
-  ∈-i Γ x τ x' τ' x-≢-x' x-∈-Γ
-in-weaken Γ Γ' x τ (weaken-∉ Γ₁ (Γ₂ , x₂ ∶ τ₂) x' τ' x'-∉-Γ₁) x-∈-Γ =
-  let : 
-      = in
-  _ -}
-
-  {- WHAT I KNOW:
-     x : τ ∈ Γ₁ , Γ₂ , x₂ : τ₂
-     x' ∉ Γ₁
-    WHAT I MUST PROVE:
-    x : τ ∈ Γ₁ , x' : τ' , Γ₂ , x₂ : τ₂ 
-  -}
-
-
-
-
-{- let x-≢-x'' : x ≢ x''
-      x-≢-x'' = p-∈-∉-distinct _ x x'' _ _ _ in
-  let aa : x ∶ τ ∈ (Γ₁ , x' ∶ τ' , Γ₂)
-      aa = p-∈-weaken (Γ₁ , Γ₂) (Γ₁ , x' ∶ τ' , Γ₂) x τ (weaken-∉ Γ₁ Γ₂ x' τ' x'-∉-Γ₁) _ in
-  ∈-i (Γ₁ , x' ∶ τ' , Γ₂) x τ x'' τ'' x-≢-x'' aa -}
-
-{- p-in-weaken Γ Γ' x τ (weaken-∉ Γ₁ Γ₂ x' τ' ∉-i-Γ) ∈-x-Γ with Γ₂
-... | ∅ = _
-... | w , x₂ ∶ x₃ = _ -}
+      x-≢-x' = in-out-distinct Γ₁ x x' τ x-∈-Γ₁ x'-∉-Γ₁ in
+  let x-∈-Γ' : x ∶ τ ∈ (Γ₁ , x' ∶ τ')
+      x-∈-Γ' = ∈-i Γ₁ x τ x' τ' x-≢-x' x-∈-Γ₁ in
+  in-out-concat (Γ₁ , x' ∶ τ') Γ₂ x τ x-∈-Γ' x-∉-Γ₂
+... | inj₂ x-∈-Γ₂ = in-weaken-l (Γ₁ , x' ∶ τ') Γ₂ x τ x-∈-Γ₂
 
 {- p-wtf : ∀ Γ₁ Γ₂ x τ
   → x ∶ τ ∈ Γ₁
