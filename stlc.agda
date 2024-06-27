@@ -378,7 +378,20 @@ ty-weaken Γ Γ' _ τ w (t-app Γ e₁ e₂ τ₁ τ te₁ te₂) =
 {- ty-weaken-nil : ∀ Γ e τ
   → ∅ ⊢ e ∶ τ
   → Γ ⊢ e ∶ τ -}
-  
+
+in-unique : ∀ Γ x τ₁ τ₂
+  → x ∶ τ₁ ∈ Γ
+  → x ∶ τ₂ ∈ Γ
+  → τ₁ ≡ τ₂
+in-unique (Γ , x ∶ τ) x τ₁ τ₂ (∈-b Γ x τ₁) (∈-b Γ x τ₂) =
+  refl
+in-unique (Γ , x' ∶ τ') x τ₁ τ₂ (∈-i Γ x τ₁ x' τ' _ x-∈-Γ₁) (∈-i Γ x τ₂ x' τ' _ x-∈-Γ₂) =
+  in-unique Γ x τ₁ τ₂ x-∈-Γ₁ x-∈-Γ₂
+in-unique (Γ , x ∶ τ) x τ₁ τ₂ (∈-b Γ x τ₁) (∈-i Γ x τ₂ x' τ' x-≢-x _) =
+  contradiction refl x-≢-x
+in-unique (Γ , x ∶ τ) x τ₁ τ₂ (∈-i Γ x τ₁ x' τ' x-≢-x _) (∈-b Γ x τ₂) =
+  contradiction refl x-≢-x
+
 -- Typing is preserved under substitution.
 ty-subst : ∀ Γ x eₓ τₓ e τ e'
   → ∅ ⊢ eₓ ∶ τₓ
@@ -389,9 +402,8 @@ ty-subst Γ x eₓ τₓ e τ e' _ (t-true (Γ , x ∶ τₓ)) (subst-true x e�
   t-true Γ
 ty-subst Γ x eₓ τₓ e τ e' _ (t-false (Γ , x ∶ τₓ)) (subst-false x eₓ) =
   t-false Γ
-{- p-ty-subst x eₓ τₓ e τ e' teₓ (t-var (Γ , x ∶ τₓ) y τ (∈-b x τₓ ∅)) (subst-var-ne x eₓ y) = _ {- t-var (x ↪ τₓ :: ∅) x τₓ (∈-b x τₓ ∅) -} -}
-{- p-ty-subst Γ x eₓ τₓ e τ e' teₓ {- (t-var (_ , x ∶ τₓ) x τ (∈-b x τₓ _))-} _ (subst-var-eq x eₓ) = _ -}
-{- ty-subst Γ x eₓ τ e τ e' teₓ (t-var (Γ , x ∶ τ) x τ x-∈-Γ) (subst-var-eq x eₓ) = ty-weaken-nil Γ eₓ τ teₓ -}
+ty-subst Γ x eₓ τₓ e τ e' teₓ (t-var (Γ , x ∶ τₓ) x τ x-∈-Γ) (subst-var-eq x eₓ) rewrite in-unique (Γ , x ∶ τₓ) x τ τₓ x-∈-Γ (∈-b Γ x τₓ) = _
+  {- ty-weaken-nil Γ eₓ τ teₓ -}
 ty-subst Γ x eₓ τₓ e τ e' teₓ (t-var (Γ , x ∶ τₓ) x' τ x'-∈-Γ) (subst-var-ne x eₓ x' x-≢-x') =
   let x'-∈-Γ : x' ∶ τ ∈ Γ
       x'-∈-Γ = in-cons-distinct-in Γ x' τ x τₓ x'-∈-Γ (≢-sym x-≢-x') in
