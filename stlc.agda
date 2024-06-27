@@ -4,6 +4,7 @@ open import Data.String.Properties using (_≟_)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Relation.Nullary
 open import Relation.Nullary.Decidable
+open import Relation.Nullary.Negation using (contradiction)
 open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; sym; ≢-sym; cong; refl)
 
 infix 22 _⊢_∶_
@@ -19,18 +20,16 @@ data Ctx : Set  where
   ∅ : Ctx
   _,_∶_ : Ctx → String → Type → Ctx
 
+infixl 21 _,_
+
 _,_ : Ctx → Ctx → Ctx
 Γ , ∅ = Γ
 Γ , (Γ' , x ∶ τ) = (Γ , Γ') , x ∶ τ
 
--- The empty context `∅` is a left identity of the context concatenation `,`.
--- The right identity is true by definition.
 concat-ident-l : ∀ Γ → ∅ , Γ ≡ Γ
 concat-ident-l ∅ = refl
 concat-ident-l (Γ , x ∶ τ) = cong (λ Γ → Γ , x ∶ τ) (concat-ident-l Γ)
 
--- The concatenation of a context `Γ`, an association `x ∶ τ`, and another context `Γ'` is equivalent
--- to the concatenation of `Γ'  with the concatenation of the empty context `∅`, `x ∶ τ`, and `Γ'`.
 concat-cons-l : ∀ Γ Γ' x τ → (Γ , x ∶ τ , Γ') ≡ Γ , (∅ , x ∶ τ , Γ')
 concat-cons-l Γ ∅ x τ = refl
 concat-cons-l Γ (Γ' , _ ∶ _) x τ rewrite concat-cons-l Γ Γ' x τ = refl
@@ -51,7 +50,6 @@ data _∉_ : String → Ctx → Set where
     → x ∉ Γ
     → x ∉ Γ , x' ∶ τ'
 
--- Given a variable `x` in a context `Γ`, and `x'` not in `Γ`, `x` and `x'` are distinct.
 in-out-distinct : ∀ Γ x y τ
   → x ∶ τ ∈ Γ
   → y ∉ Γ
@@ -62,50 +60,69 @@ in-out-distinct (Γ , x ∶ τ) x y τ (∈-b Γ x τ) (∉-i Γ y x τ ≢-yx _
 in-out-distinct (Γ , x' ∶ τ') x y τ (∈-i Γ x τ x' τ' _ ∈-x-Γ) (∉-i Γ y x' τ' _ ∉-y-Γ) =
   in-out-distinct Γ x y τ ∈-x-Γ ∉-y-Γ
 
--- Given an association `x ∶ τ` inside a context `Γ₁ , Γ₂`, then either `x ∶ τ ∈ Γ₁` and `x ∉ Γ₂`, or `x ∈ Γ₂`.
-in-concat : ∀ Γ₁ Γ₂ x τ
+in-concat-either-in-out : ∀ Γ₁ Γ₂ x τ
   → x ∶ τ ∈ (Γ₁ , Γ₂)
   → x ∶ τ ∈ Γ₁ × x ∉ Γ₂ ⊎ x ∶ τ ∈ Γ₂
-in-concat Γ₁ ∅ x τ x-∈-Γ₁ =
+in-concat-either-in-out Γ₁ ∅ x τ x-∈-Γ₁ =
   inj₁ ⟨ x-∈-Γ₁ , ∉-b x ⟩
-in-concat Γ₁ (Γ₂ , x₂ ∶ τ₂) x τ (∈-b Γ x τ) =
+in-concat-either-in-out Γ₁ (Γ₂ , x₂ ∶ τ₂) x τ (∈-b Γ x τ) =
   inj₂ (∈-b Γ₂ x τ)
-in-concat Γ₁ (Γ₂ , x₂ ∶ τ₂) x τ (∈-i Γ x τ x₂ τ₂ x-≢-x₂ x-∈-Γ) with in-concat Γ₁ Γ₂ x τ x-∈-Γ
+in-concat-either-in-out Γ₁ (Γ₂ , x₂ ∶ τ₂) x τ (∈-i Γ x τ x₂ τ₂ x-≢-x₂ x-∈-Γ) with in-concat-either-in-out Γ₁ Γ₂ x τ x-∈-Γ
 ... | inj₁ ⟨ x-∈-Γ₁ , x-∉-Γ₂ ⟩ = inj₁ ⟨ x-∈-Γ₁ , ∉-i Γ₂ x x₂ τ₂ x-≢-x₂ x-∉-Γ₂ ⟩
 ... | inj₂ x-∈-Γ₂ = inj₂ (∈-i Γ₂ x τ x₂ τ₂ x-≢-x₂ x-∈-Γ₂)
 
--- Given an association `x ∶ τ` inside a context `Γ₁`, and `x` outside of a context `Γ₂`, then `x ∶ τ` is inside
--- the concatenation of `Γ₁` and `Γ₂`.
-in-out-concat : ∀ Γ₁ Γ₂ x τ
- → x ∶ τ ∈ Γ₁
- → x ∉ Γ₂
- → x ∶ τ ∈ (Γ₁ , Γ₂)
-in-out-concat Γ₁ ∅ x τ x-∈-Γ₁ x-∉-Γ₂ = x-∈-Γ₁
-in-out-concat Γ₁ (Γ₂ , x₂ ∶ τ₂) x τ x-∈-Γ₁ (∉-i Γ₂ x x₂ τ₂ x-≢-x₂ x-∉-Γ₂) =
+in-out-in-concat : ∀ Γ₁ Γ₂ x τ
+  → x ∶ τ ∈ Γ₁
+  → x ∉ Γ₂
+  → x ∶ τ ∈ (Γ₁ , Γ₂)
+in-out-in-concat Γ₁ ∅ x τ x-∈-Γ₁ x-∉-Γ₂ = x-∈-Γ₁
+in-out-in-concat Γ₁ (Γ₂ , x₂ ∶ τ₂) x τ x-∈-Γ₁ (∉-i Γ₂ x x₂ τ₂ x-≢-x₂ x-∉-Γ₂) =
   let x-∈-Γ' : x ∶ τ ∈ (Γ₁ , Γ₂)
-      x-∈-Γ' = in-out-concat Γ₁ Γ₂ x τ x-∈-Γ₁ x-∉-Γ₂ in
+      x-∈-Γ' = in-out-in-concat Γ₁ Γ₂ x τ x-∈-Γ₁ x-∉-Γ₂ in
   ∈-i (Γ₁ , Γ₂) x τ x₂ τ₂ x-≢-x₂ x-∈-Γ'
 
-in-cons-l : ∀ Γ x τ x' τ'
+in-in-nil-cons-concat : ∀ Γ x τ x' τ'
   → x ∶ τ ∈ Γ
   → x ∶ τ ∈ (∅ , x' ∶ τ' , Γ)
-in-cons-l (Γ , x ∶ τ) x τ x' τ' (∈-b Γ x τ) = ∈-b (∅ , x' ∶ τ' , Γ) x τ
-in-cons-l (Γ , x'' ∶ τ'') x τ x' τ' (∈-i Γ x τ x'' τ'' x-≢-x'' x-∈-Γ) =
+in-in-nil-cons-concat (Γ , x ∶ τ) x τ x' τ' (∈-b Γ x τ) = ∈-b (∅ , x' ∶ τ' , Γ) x τ
+in-in-nil-cons-concat (Γ , x'' ∶ τ'') x τ x' τ' (∈-i Γ x τ x'' τ'' x-≢-x'' x-∈-Γ) =
   let x-∈-Γ' : x ∶ τ ∈ (∅ , x' ∶ τ' , Γ)
-      x-∈-Γ' = in-cons-l Γ x τ x' τ' x-∈-Γ in
+      x-∈-Γ' = in-in-nil-cons-concat Γ x τ x' τ' x-∈-Γ in
   ∈-i (∅ , x' ∶ τ' , Γ) x τ x'' τ'' x-≢-x'' x-∈-Γ'
 
-in-concat-l : ∀ Γ₁ Γ₂ x τ
+in-in-concat : ∀ Γ₁ Γ₂ x τ
   → x ∶ τ ∈ Γ₂
   → x ∶ τ ∈ (Γ₁ , Γ₂)
-in-concat-l ∅ Γ₂ x τ (∈-b Γ₂' x τ) rewrite concat-ident-l Γ₂' =
+in-in-concat ∅ Γ₂ x τ (∈-b Γ₂' x τ) rewrite concat-ident-l Γ₂' =
   ∈-b Γ₂' x τ
-in-concat-l ∅ (Γ₂ , x₂ ∶ τ₂) x τ (∈-i Γ₂ x τ x₂ τ₂ x-≢-x₂ x-∈-Γ₂) rewrite concat-ident-l Γ₂ =
+in-in-concat ∅ (Γ₂ , x₂ ∶ τ₂) x τ (∈-i Γ₂ x τ x₂ τ₂ x-≢-x₂ x-∈-Γ₂) rewrite concat-ident-l Γ₂ =
   ∈-i Γ₂ x τ x₂ τ₂ x-≢-x₂ x-∈-Γ₂
-in-concat-l (Γ₁ , x₁ ∶ τ₁) Γ₂ x τ x-∈-Γ₂ rewrite concat-cons-l Γ₁ Γ₂ x₁ τ₁ =
+in-in-concat (Γ₁ , x₁ ∶ τ₁) Γ₂ x τ x-∈-Γ₂ rewrite concat-cons-l Γ₁ Γ₂ x₁ τ₁ =
   let x-∈-Γ₂' : x ∶ τ ∈ (∅ , x₁ ∶ τ₁ , Γ₂)
-      x-∈-Γ₂' = in-cons-l Γ₂ x τ x₁ τ₁ x-∈-Γ₂ in
-  in-concat-l Γ₁ (∅ , x₁ ∶ τ₁ , Γ₂) x τ x-∈-Γ₂'
+      x-∈-Γ₂' = in-in-nil-cons-concat Γ₂ x τ x₁ τ₁ x-∈-Γ₂ in
+  in-in-concat Γ₁ (∅ , x₁ ∶ τ₁ , Γ₂) x τ x-∈-Γ₂'
+
+in-cons-distinct-in : ∀ Γ x τ x' τ'
+  → x ∶ τ ∈ Γ , x' ∶ τ'
+  → x ≢ x'
+  → x ∶ τ ∈ Γ
+in-cons-distinct-in Γ x τ x τ (∈-b Γ x τ) x-≢-x = contradiction refl x-≢-x 
+in-cons-distinct-in Γ x τ x' τ' (∈-i Γ x τ x' τ' _ x-∈-Γ) _ = x-∈-Γ
+
+in-concat-out-in : ∀ Γ₁ Γ₂ x τ
+  → x ∶ τ ∈ (Γ₁ , Γ₂)
+  → x ∉ Γ₂
+  → x ∶ τ ∈ Γ₁
+in-concat-out-in Γ₁ ∅ x τ x-∈-Γ (∉-b x) = x-∈-Γ
+in-concat-out-in Γ₁ (Γ₂ , x₂ ∶ τ₂) x τ x-∈-Γ (∉-i Γ₂ x x₂ τ₂ x-≢-x₂ x-∉-Γ₂) =
+  let x-∈-Γ' : x ∶ τ ∈ (Γ₁ , Γ₂)
+      x-∈-Γ' = in-cons-distinct-in (Γ₁ , Γ₂) x τ x₂ τ₂ x-∈-Γ x-≢-x₂ in
+  in-concat-out-in Γ₁ Γ₂ x τ x-∈-Γ' x-∉-Γ₂
+
+{-
+  What I have : proof that it is in the full concat
+  proof not in gamma 2
+-}
 
 {- in-strength : ∀ Γ₁ Γ₂ x τ x' τ'
   → x ∶ τ ∈ (Γ₁ , x' ∶ τ' , Γ₂)
@@ -127,6 +144,22 @@ data Extend : Ctx → Ctx → Set where
     → x ∶ τ₂ ∈ Γ₂
     → Extend (Γ₁ , Γ₂) (Γ₁ , x ∶ τ , Γ₂)
 
+{-
+open import Relation.Binary.Construct.Closure.ReflexiveTransitive using (Star; ε; _▻_)
+
+Extend* = Star Extend
+
+extend*-nil : ∀ Γ → Extend* ∅ Γ
+extend*-nil ∅ = ε
+extend*-nil (Γ , x ∶ τ) =
+  let a : Extend* ∅ Γ
+      a = extend*-nil Γ in
+  let b : Extend Γ (Γ , x ∶ τ)
+      b = with ≟
+      extend-∉ ∅ ∅ x τ (∉-b x) in
+  _
+-}
+
 -- Extension is preserved under appending.
 extend-cons : ∀ Γ Γ' x τ
   → Extend Γ Γ'
@@ -142,22 +175,22 @@ in-extend : ∀ Γ Γ' x τ
   → Extend Γ Γ'
   → x ∶ τ ∈ Γ
   → x ∶ τ ∈ Γ'
-in-extend Γ Γ' x τ (extend-∈ Γ₁ Γ₂ x' τ' τ₂ x'-∈-Γ₂) x-∈-Γ with in-concat Γ₁ Γ₂ x τ x-∈-Γ
+in-extend Γ Γ' x τ (extend-∈ Γ₁ Γ₂ x' τ' τ₂ x'-∈-Γ₂) x-∈-Γ with in-concat-either-in-out Γ₁ Γ₂ x τ x-∈-Γ
 ... | inj₁ ⟨ x-∈-Γ₁ , x-∉-Γ₂ ⟩ =
   let x-≢-x' : x ≢ x'
       x-≢-x' = ≢-sym (in-out-distinct Γ₂ x' x τ₂ x'-∈-Γ₂ x-∉-Γ₂) in
   let x-∈-Γ' : x ∶ τ ∈ (Γ₁ , x' ∶ τ') 
       x-∈-Γ' = ∈-i Γ₁ x τ x' τ' x-≢-x' x-∈-Γ₁ in
-  in-out-concat (Γ₁ , x' ∶ τ') Γ₂ x τ x-∈-Γ' x-∉-Γ₂
-... | inj₂ x-∈-Γ₂ = in-concat-l (Γ₁ , x' ∶ τ') Γ₂ x τ x-∈-Γ₂
-in-extend Γ Γ' x τ (extend-∉ Γ₁ Γ₂ x' τ' x'-∉-Γ₁) x-∈-Γ with in-concat Γ₁ Γ₂ x τ x-∈-Γ
+  in-out-in-concat (Γ₁ , x' ∶ τ') Γ₂ x τ x-∈-Γ' x-∉-Γ₂
+... | inj₂ x-∈-Γ₂ = in-in-concat (Γ₁ , x' ∶ τ') Γ₂ x τ x-∈-Γ₂
+in-extend Γ Γ' x τ (extend-∉ Γ₁ Γ₂ x' τ' x'-∉-Γ₁) x-∈-Γ with in-concat-either-in-out Γ₁ Γ₂ x τ x-∈-Γ
 ... | inj₁ ⟨ x-∈-Γ₁ , x-∉-Γ₂ ⟩ =
   let x-≢-x' : x ≢ x'
       x-≢-x' = in-out-distinct Γ₁ x x' τ x-∈-Γ₁ x'-∉-Γ₁ in
   let x-∈-Γ' : x ∶ τ ∈ (Γ₁ , x' ∶ τ')
       x-∈-Γ' = ∈-i Γ₁ x τ x' τ' x-≢-x' x-∈-Γ₁ in
-  in-out-concat (Γ₁ , x' ∶ τ') Γ₂ x τ x-∈-Γ' x-∉-Γ₂
-... | inj₂ x-∈-Γ₂ = in-concat-l (Γ₁ , x' ∶ τ') Γ₂ x τ x-∈-Γ₂
+  in-out-in-concat (Γ₁ , x' ∶ τ') Γ₂ x τ x-∈-Γ' x-∉-Γ₂
+... | inj₂ x-∈-Γ₂ = in-in-concat (Γ₁ , x' ∶ τ') Γ₂ x τ x-∈-Γ₂
 
 {-p-idk : ∀ Γ₁ Γ₂ x τ
   → x ∶ τ ∈ (Γ₁ , Γ₂)
@@ -187,6 +220,7 @@ data _[_/_]⇛_ : Term → Term → String → Term → Set where
   subst-var-eq : ∀ x eₓ
     → (tm-var x) [ eₓ / x ]⇛ eₓ
   subst-var-ne : ∀ x eₓ y
+    → x ≢ y
     → (tm-var y) [ eₓ / x ]⇛ (tm-var y)
   subst-if : ∀ x eₓ e₁ e₂ e₃ e₁' e₂' e₃'
     → e₁ [ eₓ / x ]⇛ e₁'
@@ -341,25 +375,34 @@ ty-weaken Γ Γ' _ τ w (t-app Γ e₁ e₂ τ₁ τ te₁ te₂) =
       te₂' = ty-weaken Γ Γ' e₂ τ₁ w te₂ in
   t-app Γ' e₁ e₂ τ₁ τ te₁' te₂'
 
-{- -- Typing is preserved under substitution
-p-ty-subst : ∀ Γ x eₓ τₓ e τ e'
+{- ty-weaken-nil : ∀ Γ e τ
+  → ∅ ⊢ e ∶ τ
+  → Γ ⊢ e ∶ τ -}
+  
+-- Typing is preserved under substitution.
+ty-subst : ∀ Γ x eₓ τₓ e τ e'
   → ∅ ⊢ eₓ ∶ τₓ
   → (Γ , x ∶ τₓ) ⊢ e ∶ τ
   → e [ eₓ / x ]⇛ e'
   → Γ ⊢ e' ∶ τ
-p-ty-subst Γ x eₓ τₓ e τ e' _ (t-true (Γ , x ∶ τₓ)) (subst-true x eₓ) =
+ty-subst Γ x eₓ τₓ e τ e' _ (t-true (Γ , x ∶ τₓ)) (subst-true x eₓ) =
   t-true Γ
-p-ty-subst Γ x eₓ τₓ e τ e' _ (t-false (Γ , x ∶ τₓ)) (subst-false x eₓ) =
+ty-subst Γ x eₓ τₓ e τ e' _ (t-false (Γ , x ∶ τₓ)) (subst-false x eₓ) =
   t-false Γ
 {- p-ty-subst x eₓ τₓ e τ e' teₓ (t-var (Γ , x ∶ τₓ) y τ (∈-b x τₓ ∅)) (subst-var-ne x eₓ y) = _ {- t-var (x ↪ τₓ :: ∅) x τₓ (∈-b x τₓ ∅) -} -}
 {- p-ty-subst Γ x eₓ τₓ e τ e' teₓ {- (t-var (_ , x ∶ τₓ) x τ (∈-b x τₓ _))-} _ (subst-var-eq x eₓ) = _ -}
-p-ty-subst Γ x eₓ τₓ e τ e' teₓ (t-if (Γ , x ∶ τₓ) τ e₁ e₂ e₃ te₁ te₂ te₃) (subst-if x eₓ e₁ e₂ e₃ e₁' e₂' e₃' se₁' se₂' se₃') =
+{- ty-subst Γ x eₓ τ e τ e' teₓ (t-var (Γ , x ∶ τ) x τ x-∈-Γ) (subst-var-eq x eₓ) = ty-weaken-nil Γ eₓ τ teₓ -}
+ty-subst Γ x eₓ τₓ e τ e' teₓ (t-var (Γ , x ∶ τₓ) x' τ x'-∈-Γ) (subst-var-ne x eₓ x' x-≢-x') =
+  let x'-∈-Γ : x' ∶ τ ∈ Γ
+      x'-∈-Γ = in-cons-distinct-in Γ x' τ x τₓ x'-∈-Γ (≢-sym x-≢-x') in
+  t-var Γ x' τ x'-∈-Γ
+ty-subst Γ x eₓ τₓ e τ e' teₓ (t-if (Γ , x ∶ τₓ) τ e₁ e₂ e₃ te₁ te₂ te₃) (subst-if x eₓ e₁ e₂ e₃ e₁' e₂' e₃' se₁' se₂' se₃') =
   let te₁' : Γ  ⊢ e₁' ∶ ty-bool
-      te₁' = p-ty-subst Γ x eₓ τₓ e₁ ty-bool e₁' teₓ te₁ se₁' in
+      te₁' = ty-subst Γ x eₓ τₓ e₁ ty-bool e₁' teₓ te₁ se₁' in
   let te₂' : Γ  ⊢ e₂' ∶ τ
-      te₂' = p-ty-subst Γ x eₓ τₓ e₂ τ e₂' teₓ te₂ se₂' in
+      te₂' = ty-subst Γ x eₓ τₓ e₂ τ e₂' teₓ te₂ se₂' in
   let te₃' : Γ  ⊢ e₃' ∶ τ
-      te₃' = p-ty-subst Γ x eₓ τₓ e₃ τ e₃' teₓ te₃ se₃' in
+      te₃' = ty-subst Γ x eₓ τₓ e₃ τ e₃' teₓ te₃ se₃' in
   t-if Γ τ e₁' e₂' e₃' te₁' te₂' te₃'
 {- p-ty-subst Γ x eₓ τₓ e τ e' teₓ (t-abs (x ↪ τₓ :: Γ) y τ₁ τ₂ e₂ te₂) (subst-abs x eₓ y τ₁ e₂ e₂' se₂') =
   {- te₂ : (y ↪ τ₁ :: (x ↪ τₓ :: Γ)) ⊢ e₂ ∶ τ₂
@@ -372,13 +415,13 @@ p-ty-subst Γ x eₓ τₓ e τ e' teₓ (t-if (Γ , x ∶ τₓ) τ e₁ e₂ e
       e₂-∶-τ₂ = _ in
       
   t-abs Γ x τ₁ τ₂ e₂ _ -}
-p-ty-subst Γ x eₓ τₓ e τ e' teₓ (t-app (Γ , x ∶ τₓ) e₁ e₂ τ₁ τ₂ te₁ te₂) (subst-app x eₓ e₁ e₂ e₁' e₂' se₁ se₂) =
+ty-subst Γ x eₓ τₓ e τ e' teₓ (t-app (Γ , x ∶ τₓ) e₁ e₂ τ₁ τ₂ te₁ te₂) (subst-app x eₓ e₁ e₂ e₁' e₂' se₁ se₂) =
   let te₁' : Γ ⊢ e₁' ∶ ty-abs τ₁ τ₂
-      te₁' = p-ty-subst Γ x eₓ τₓ e₁ (ty-abs τ₁ τ₂) e₁' teₓ te₁ se₁ in
-  let te₂' : Γ ⊢ e₂' ∶ τ₂
-      te₂' = p-ty-subst Γ x eₓ τₓ e₂ τ₂ e₂' teₓ te₂ se₂ in
+      te₁' = ty-subst Γ x eₓ τₓ e₁ (ty-abs τ₁ τ₂) e₁' teₓ te₁ se₁ in
+  let te₂' : Γ ⊢ e₂' ∶ τ₁
+      te₂' = ty-subst Γ x eₓ τₓ e₂ τ₁ e₂' teₓ te₂ se₂ in
   t-app Γ e₁' e₂' τ₁ τ₂ te₁' te₂'
--}
+
 
 {-
   Γ, x ∶ τₓ ⊢ λy. e : τ   ∅ ⊢ eₓ ∶ τₓ   x ≡ y   (λy. e)[eₓ/x] ⇛ (λy. e)
