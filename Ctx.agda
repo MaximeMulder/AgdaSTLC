@@ -1,7 +1,7 @@
 open import Data.Product using (_×_) renaming (_,_ to ⟨_,_⟩)
 open import Data.String using (String)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
-open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; cong; refl; ≢-sym)
+open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; cong; refl; sym; ≢-sym)
 open import Relation.Nullary.Negation using (contradiction)
 
 open import Syntax
@@ -23,16 +23,27 @@ _,_ : Ctx → Ctx → Ctx
 Γ , ∅ = Γ
 Γ , (Γ' , x ∶ τ) = (Γ , Γ') , x ∶ τ
 
--- The empty context `∅` is a left identity of context concatenation.
+-- The empty context `∅` is a left identity of the context concatenation.
 -- The right identity is true by definition.
 concat-ident-l : ∀ Γ → ∅ , Γ ≡ Γ
-concat-ident-l ∅ = refl
-concat-ident-l (Γ , x ∶ τ) = cong (λ Γ → Γ , x ∶ τ) (concat-ident-l Γ)
+concat-ident-l ∅ =
+  refl
+concat-ident-l (Γ , x ∶ τ) =
+  cong (λ Γ → Γ , x ∶ τ) (concat-ident-l Γ)
 
--- TODO: Can I just remove `x ∶ τ` here ?
-concat-ext-l : ∀ Γ Γ' x τ → (Γ , x ∶ τ , Γ') ≡ Γ , (∅ , x ∶ τ , Γ')
-concat-ext-l Γ ∅ x τ = refl
-concat-ext-l Γ (Γ' , _ ∶ _) x τ rewrite concat-ext-l Γ Γ' x τ = refl
+-- Commutativity of context concatenation under extension.
+concat-comm-ext : ∀ Γ Γ' x τ → (Γ , x ∶ τ , Γ') ≡ Γ , (∅ , x ∶ τ , Γ')
+concat-comm-ext Γ ∅ x τ =
+  refl
+concat-comm-ext Γ (Γ' , _ ∶ _) x τ rewrite concat-comm-ext Γ Γ' x τ =
+  refl
+
+-- Commutativity of context concatenation.
+concat-comm : ∀ Γ₁ Γ₂ Γ₃ → (Γ₁ , Γ₂) , Γ₃ ≡ Γ₁ , (Γ₂ , Γ₃)
+concat-comm Γ₁ ∅ Γ₃ rewrite concat-ident-l Γ₃ =
+  refl
+concat-comm Γ₁ (Γ₂ , x ∶ τ) Γ₃ rewrite concat-comm-ext (Γ₁ , Γ₂) Γ₃ x τ  | concat-comm Γ₁ Γ₂ (∅ , x ∶ τ , Γ₃) | sym (concat-comm-ext Γ₂ Γ₃ x τ) =
+  refl
 
 -- The inclusion of an entry in a context, or "in", relation.
 data _∶_∈_ : String → Type → Ctx → Set where
@@ -108,7 +119,7 @@ in-in-concat ∅ Γ₂ x τ (∈-b Γ₂' x τ) rewrite concat-ident-l Γ₂' =
   ∈-b Γ₂' x τ
 in-in-concat ∅ (Γ₂ , x₂ ∶ τ₂) x τ (∈-i Γ₂ x τ x₂ τ₂ x-≢-x₂ x-∈-Γ₂) rewrite concat-ident-l Γ₂ =
   ∈-i Γ₂ x τ x₂ τ₂ x-≢-x₂ x-∈-Γ₂
-in-in-concat (Γ₁ , x₁ ∶ τ₁) Γ₂ x τ x-∈-Γ₂ rewrite concat-ext-l Γ₁ Γ₂ x₁ τ₁ =
+in-in-concat (Γ₁ , x₁ ∶ τ₁) Γ₂ x τ x-∈-Γ₂ rewrite concat-comm-ext Γ₁ Γ₂ x₁ τ₁ =
   let x-∈-Γ₂' : x ∶ τ ∈ (∅ , x₁ ∶ τ₁ , Γ₂)
       x-∈-Γ₂' = in-in-nil-cons-concat Γ₂ x τ x₁ τ₁ x-∈-Γ₂ in
   in-in-concat Γ₁ (∅ , x₁ ∶ τ₁ , Γ₂) x τ x-∈-Γ₂'
