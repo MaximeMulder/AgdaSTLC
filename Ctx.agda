@@ -78,7 +78,7 @@ in-out-distinct (Γ , x' ∶ τ') x y τ (∈-i Γ x τ x' τ' _ ∈-x-Γ) (∉-
 -- If the entry `x ∶ τ` is in the concatenation of the contexts `Γ₁` and `Γ₂`,
 -- then either `x ∶ τ` is in `Γ₁` and `x` is out of `Γ₂`, or `x ∶ τ` is in `Γ₂`.
 in-concat-either-in-out : ∀ Γ₁ Γ₂ x τ
-  → x ∶ τ ∈ (Γ₁ , Γ₂)
+  → x ∶ τ ∈ Γ₁ , Γ₂
   → x ∶ τ ∈ Γ₁ × x ∉ Γ₂ ⊎ x ∶ τ ∈ Γ₂
 in-concat-either-in-out Γ₁ ∅ x τ x-∈-Γ₁ =
   inj₁ ⟨ x-∈-Γ₁ , ∉-b x ⟩
@@ -93,35 +93,37 @@ in-concat-either-in-out Γ₁ (Γ₂ , x₂ ∶ τ₂) x τ (∈-i Γ x τ x₂ 
 in-out-in-concat : ∀ Γ₁ Γ₂ x τ
   → x ∶ τ ∈ Γ₁
   → x ∉ Γ₂
-  → x ∶ τ ∈ (Γ₁ , Γ₂)
+  → x ∶ τ ∈ Γ₁ , Γ₂
 in-out-in-concat Γ₁ ∅ x τ x-∈-Γ₁ x-∉-Γ₂ = x-∈-Γ₁
 in-out-in-concat Γ₁ (Γ₂ , x₂ ∶ τ₂) x τ x-∈-Γ₁ (∉-i Γ₂ x x₂ τ₂ x-≢-x₂ x-∉-Γ₂) =
   let x-∈-Γ' : x ∶ τ ∈ (Γ₁ , Γ₂)
       x-∈-Γ' = in-out-in-concat Γ₁ Γ₂ x τ x-∈-Γ₁ x-∉-Γ₂ in
   ∈-i (Γ₁ , Γ₂) x τ x₂ τ₂ x-≢-x₂ x-∈-Γ'
 
--- TODO: Can this be replaced by `in-in-concat` ?
-in-in-nil-cons-concat : ∀ Γ x τ x' τ'
+-- If the entry `x ∶ τ` is in the context `Γ`, then `x ∶ τ` is in the concatenation
+-- of the extension of the empty context `∅` with the entry `x' ∶ τ'` and `Γ`.
+in-in-nil-ext-concat : ∀ Γ x τ x' τ'
   → x ∶ τ ∈ Γ
-  → x ∶ τ ∈ (∅ , x' ∶ τ' , Γ)
-in-in-nil-cons-concat (Γ , x ∶ τ) x τ x' τ' (∈-b Γ x τ) = ∈-b (∅ , x' ∶ τ' , Γ) x τ
-in-in-nil-cons-concat (Γ , x'' ∶ τ'') x τ x' τ' (∈-i Γ x τ x'' τ'' x-≢-x'' x-∈-Γ) =
+  → x ∶ τ ∈ ∅ , x' ∶ τ' , Γ
+in-in-nil-ext-concat (Γ , x ∶ τ) x τ x' τ' (∈-b Γ x τ) =
+  ∈-b (∅ , x' ∶ τ' , Γ) x τ
+in-in-nil-ext-concat (Γ , x'' ∶ τ'') x τ x' τ' (∈-i Γ x τ x'' τ'' x-≢-x'' x-∈-Γ) =
   let x-∈-Γ' : x ∶ τ ∈ (∅ , x' ∶ τ' , Γ)
-      x-∈-Γ' = in-in-nil-cons-concat Γ x τ x' τ' x-∈-Γ in
+      x-∈-Γ' = in-in-nil-ext-concat Γ x τ x' τ' x-∈-Γ in
   ∈-i (∅ , x' ∶ τ' , Γ) x τ x'' τ'' x-≢-x'' x-∈-Γ'
 
 -- If the entry `x ∶ τ` is in the context `Γ₂`, then `x ∶ τ` is in the concatenation
 -- of the context `Γ₁` and `Γ₂`.
 in-in-concat : ∀ Γ₁ Γ₂ x τ
   → x ∶ τ ∈ Γ₂
-  → x ∶ τ ∈ (Γ₁ , Γ₂)
+  → x ∶ τ ∈ Γ₁ , Γ₂
 in-in-concat ∅ Γ₂ x τ (∈-b Γ₂' x τ) rewrite concat-ident-l Γ₂' =
   ∈-b Γ₂' x τ
 in-in-concat ∅ (Γ₂ , x₂ ∶ τ₂) x τ (∈-i Γ₂ x τ x₂ τ₂ x-≢-x₂ x-∈-Γ₂) rewrite concat-ident-l Γ₂ =
   ∈-i Γ₂ x τ x₂ τ₂ x-≢-x₂ x-∈-Γ₂
 in-in-concat (Γ₁ , x₁ ∶ τ₁) Γ₂ x τ x-∈-Γ₂ rewrite concat-comm-ext Γ₁ Γ₂ x₁ τ₁ =
   let x-∈-Γ₂' : x ∶ τ ∈ (∅ , x₁ ∶ τ₁ , Γ₂)
-      x-∈-Γ₂' = in-in-nil-cons-concat Γ₂ x τ x₁ τ₁ x-∈-Γ₂ in
+      x-∈-Γ₂' = in-in-nil-ext-concat Γ₂ x τ x₁ τ₁ x-∈-Γ₂ in
   in-in-concat Γ₁ (∅ , x₁ ∶ τ₁ , Γ₂) x τ x-∈-Γ₂'
 
 -- If the entry is `x ∶ τ` is in the extension of the context `Γ` with the entry `x' ∶ τ'`,
@@ -136,7 +138,7 @@ in-ext-distinct-in Γ x τ x' τ' (∈-i Γ x τ x' τ' _ x-∈-Γ) _ = x-∈-Γ
 -- If the entry `x ∶ τ` is in the concatenation of the contexts `Γ₁` and `Γ₂`,
 -- and `x` is not in `Γ₂`, then `x ∶ τ` is in `Γ₁`.
 in-concat-out-in : ∀ Γ₁ Γ₂ x τ
-  → x ∶ τ ∈ (Γ₁ , Γ₂)
+  → x ∶ τ ∈ Γ₁ , Γ₂
   → x ∉ Γ₂
   → x ∶ τ ∈ Γ₁
 in-concat-out-in Γ₁ ∅ x τ x-∈-Γ (∉-b x) = x-∈-Γ
