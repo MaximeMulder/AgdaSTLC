@@ -28,8 +28,8 @@ data _⊢_∶_ : Ctx → Term → Type → Set where
     → Γ ⊢ e₂ ∶ τ₁
     → Γ ⊢ tm-app e₁ e₂ ∶ τ₂
 
--- Preservation of typing under weakening, which means that if the context `Γ'` is
--- a weakening of the context `Γ`, and that the term `e` has type `τ` under `Γ`,
+-- Preservation of typing under weakening, which means that if the context `Γ'`
+-- is a weakening of the context `Γ`, and that the term `e` has type `τ` under `Γ`,
 -- then `e` also has type `τ` under `Γ'`.
 weaken-preserve-ty : ∀ Γ Γ' e τ
   → Weaken Γ Γ'
@@ -119,7 +119,7 @@ ty-nil Γ e τ te =
   weaken*-preserve-ty ∅ Γ e τ (weaken*-nil Γ) te
 
 -- Preservation of typing under substitution, which means that if a term `e`
--- has type `τ` under a context `Γ` where the entry `x ∶ τₓ` is in this
+-- has type `τ` under a context `Γ` where the assumption `x ∶ τₓ` is in this
 -- context, then `e` also has type `τ` under `Γ` without `x`.
 -- TODO: This definition needs to be generalized to match the above comment.
 -- "`Γ` without `x`" is also not properly defined. Maybe I should define a

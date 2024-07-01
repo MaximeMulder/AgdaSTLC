@@ -6,8 +6,8 @@ open import Relation.Nullary using (yes; no)
 
 open import Ctx
 
--- Context weakening, commonly referred as "weakening", which is the insertion
--- of an entry in a context that does not invalidate any information of this
+-- Context weakening, usually abbreviated as "weaken", which is the insertion
+-- of an assumption in a context that does not invalidate any assumption of this
 -- context.
 data Weaken : Ctx → Ctx → Set where
   weaken-∉ : ∀ Γ₁ Γ₂ x τ
@@ -31,7 +31,7 @@ data Weaken*  : Ctx → Ctx → Set where
     → Weaken* Γ Γ''
 
 -- Monotonicity of weakening under extension, which means that if `Γ'` is a
--- weakening of `Γ`, then the extension of `Γ'` with the entry `x ∶ τ` is a
+-- weakening of `Γ`, then the extension of `Γ'` with the assumption `x ∶ τ` is a
 -- weakening of the extension of `Γ` with `x ∶ τ`.
 weaken-mono-ext : ∀ Γ Γ' x τ
   → Weaken Γ Γ'
@@ -70,7 +70,7 @@ weaken*-nil (Γ , x ∶ τ) =
   weaken*-concat-nil-cons Γ x τ weak-Γ weak-x
 
 -- Preservation of inclusion under weakening, which means that if the context `Γ'`
--- is a weakening of the context `Γ`, and the entry `x ∶ τ` is in `Γ`, then `x ∶ τ`
+-- is a weakening of the context `Γ`, and the assumption `x ∶ τ` is in `Γ`, then `x ∶ τ`
 -- is in `Γ'`.
 weaken-preserve-in : ∀ Γ Γ' x τ
   → Weaken Γ Γ'

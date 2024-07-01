@@ -11,14 +11,14 @@ infixl 21 _,_∶_
 infix 20 _∶_∈_
 infix 20 _∉_
 
--- The typing context, commonly referred as the "context".
+-- The typing context.
 data Ctx : Set  where
-  -- The empty context, sometimes referred as "nil".
+  -- The empty context, usually abbreviated as "nil".
   ∅ : Ctx
-  -- The context extension, sometimes referred as "ext".
+  -- The context extension, usually abbreviated as "ext".
   _,_∶_ : Ctx → String → Type → Ctx
 
--- The context concatenation.
+-- The context concatenation, usually abbreviated as "concat".
 _,_ : Ctx → Ctx → Ctx
 Γ , ∅ = Γ
 Γ , (Γ' , x ∶ τ) = (Γ , Γ') , x ∶ τ
@@ -45,7 +45,7 @@ concat-comm Γ₁ ∅ Γ₃ rewrite concat-ident-l Γ₃ =
 concat-comm Γ₁ (Γ₂ , x ∶ τ) Γ₃ rewrite concat-comm-ext (Γ₁ , Γ₂) Γ₃ x τ  | concat-comm Γ₁ Γ₂ (∅ , x ∶ τ , Γ₃) | sym (concat-comm-ext Γ₂ Γ₃ x τ) =
   refl
 
--- The inclusion of an entry in a context, or "in", relation.
+-- The inclusion of an assumption in a context, usually abbreviated as "in".
 data _∶_∈_ : String → Type → Ctx → Set where
   ∈-b : ∀ Γ x τ
     → x ∶ τ ∈ Γ , x ∶ τ
@@ -54,7 +54,7 @@ data _∶_∈_ : String → Type → Ctx → Set where
     → x ∶ τ ∈ Γ
     → x ∶ τ ∈ Γ , x' ∶ τ'
 
--- The exclusion of a variable in a context, or "out", relation.
+-- The exclusion of a variable in a context, usually abbreviated as "out".
 data _∉_ : String → Ctx → Set where
   ∉-b : ∀ x
     → x ∉ ∅
@@ -75,7 +75,7 @@ in-out-distinct (Γ , x ∶ τ) x y τ (∈-b Γ x τ) (∉-i Γ y x τ ≢-yx _
 in-out-distinct (Γ , x' ∶ τ') x y τ (∈-i Γ x τ x' τ' _ ∈-x-Γ) (∉-i Γ y x' τ' _ ∉-y-Γ) =
   in-out-distinct Γ x y τ ∈-x-Γ ∉-y-Γ
 
--- If the entry `x ∶ τ` is in the concatenation of the contexts `Γ₁` and `Γ₂`,
+-- If the assumption `x ∶ τ` is in the concatenation of the contexts `Γ₁` and `Γ₂`,
 -- then either `x ∶ τ` is in `Γ₁` and `x` is out of `Γ₂`, or `x ∶ τ` is in `Γ₂`.
 in-concat-either-in-out : ∀ Γ₁ Γ₂ x τ
   → x ∶ τ ∈ Γ₁ , Γ₂
@@ -88,8 +88,8 @@ in-concat-either-in-out Γ₁ (Γ₂ , x₂ ∶ τ₂) x τ (∈-i Γ x τ x₂ 
 ... | inj₁ ⟨ x-∈-Γ₁ , x-∉-Γ₂ ⟩ = inj₁ ⟨ x-∈-Γ₁ , ∉-i Γ₂ x x₂ τ₂ x-≢-x₂ x-∉-Γ₂ ⟩
 ... | inj₂ x-∈-Γ₂ = inj₂ (∈-i Γ₂ x τ x₂ τ₂ x-≢-x₂ x-∈-Γ₂)
 
--- If the entry `x ∶ τ` is in the context `Γ₁`, and `x` is out of the context `Γ₂`,
--- then `x ∶ τ` is in the concatenation of `Γ₁` and `Γ₂`.
+-- If the assumption `x ∶ τ` is in the context `Γ₁`, and `x` is out of the
+-- context `Γ₂`, then `x ∶ τ` is in the concatenation of `Γ₁` and `Γ₂`.
 in-out-in-concat : ∀ Γ₁ Γ₂ x τ
   → x ∶ τ ∈ Γ₁
   → x ∉ Γ₂
@@ -100,8 +100,9 @@ in-out-in-concat Γ₁ (Γ₂ , x₂ ∶ τ₂) x τ x-∈-Γ₁ (∉-i Γ₂ x 
       x-∈-Γ' = in-out-in-concat Γ₁ Γ₂ x τ x-∈-Γ₁ x-∉-Γ₂ in
   ∈-i (Γ₁ , Γ₂) x τ x₂ τ₂ x-≢-x₂ x-∈-Γ'
 
--- If the entry `x ∶ τ` is in the context `Γ`, then `x ∶ τ` is in the concatenation
--- of the extension of the empty context `∅` with the entry `x' ∶ τ'` and `Γ`.
+-- If the assumption `x ∶ τ` is in the context `Γ`, then `x ∶ τ` is in the
+-- concatenation of the extension of the empty context `∅` with the assumption
+-- `x' ∶ τ'` and `Γ`.
 in-in-nil-ext-concat : ∀ Γ x τ x' τ'
   → x ∶ τ ∈ Γ
   → x ∶ τ ∈ ∅ , x' ∶ τ' , Γ
@@ -112,8 +113,8 @@ in-in-nil-ext-concat (Γ , x'' ∶ τ'') x τ x' τ' (∈-i Γ x τ x'' τ'' x-�
       x-∈-Γ' = in-in-nil-ext-concat Γ x τ x' τ' x-∈-Γ in
   ∈-i (∅ , x' ∶ τ' , Γ) x τ x'' τ'' x-≢-x'' x-∈-Γ'
 
--- If the entry `x ∶ τ` is in the context `Γ₂`, then `x ∶ τ` is in the concatenation
--- of the context `Γ₁` and `Γ₂`.
+-- If the assumption `x ∶ τ` is in the context `Γ₂`, then `x ∶ τ` is in the
+-- concatenation of the context `Γ₁` and `Γ₂`.
 in-in-concat : ∀ Γ₁ Γ₂ x τ
   → x ∶ τ ∈ Γ₂
   → x ∶ τ ∈ Γ₁ , Γ₂
@@ -126,8 +127,8 @@ in-in-concat (Γ₁ , x₁ ∶ τ₁) Γ₂ x τ x-∈-Γ₂ rewrite concat-comm
       x-∈-Γ₂' = in-in-nil-ext-concat Γ₂ x τ x₁ τ₁ x-∈-Γ₂ in
   in-in-concat Γ₁ (∅ , x₁ ∶ τ₁ , Γ₂) x τ x-∈-Γ₂'
 
--- If the entry is `x ∶ τ` is in the extension of the context `Γ` with the entry `x' ∶ τ'`,
--- and `x` is distinct from `x'`, then `x ∶ τ` is in `Γ`.
+-- If the assumption `x ∶ τ` is in the extension of the context `Γ` with the
+-- assumption `x' ∶ τ'`, and `x` is distinct from `x'`, then `x ∶ τ` is in `Γ`.
 in-ext-distinct-in : ∀ Γ x τ x' τ'
   → x ∶ τ ∈ Γ , x' ∶ τ'
   → x ≢ x'
@@ -135,7 +136,7 @@ in-ext-distinct-in : ∀ Γ x τ x' τ'
 in-ext-distinct-in Γ x τ x τ (∈-b Γ x τ) x-≢-x = contradiction refl x-≢-x
 in-ext-distinct-in Γ x τ x' τ' (∈-i Γ x τ x' τ' _ x-∈-Γ) _ = x-∈-Γ
 
--- If the entry `x ∶ τ` is in the concatenation of the contexts `Γ₁` and `Γ₂`,
+-- If the assumption `x ∶ τ` is in the concatenation of the contexts `Γ₁` and `Γ₂`,
 -- and `x` is not in `Γ₂`, then `x ∶ τ` is in `Γ₁`.
 in-concat-out-in : ∀ Γ₁ Γ₂ x τ
   → x ∶ τ ∈ Γ₁ , Γ₂
