@@ -1,7 +1,7 @@
 open import Data.Product using (_×_) renaming (_,_ to ⟨_,_⟩)
 open import Data.String.Properties using (_≟_)
 open import Data.Sum using (inj₁; inj₂)
-open import Relation.Binary.PropositionalEquality using (_≢_; ≢-sym)
+open import Relation.Binary.PropositionalEquality using (_≢_; sym; ≢-sym)
 open import Relation.Nullary using (yes; no)
 open import Relation.Nullary.Negation using (contradiction)
 
@@ -14,6 +14,20 @@ data Contract : Ctx → Ctx → Set where
   contract : ∀ Γ₁ Γ₂ x τ τ₂
     → x ∶ τ₂ ∈ Γ₂
     → Contract (Γ₁ , x ∶ τ , Γ₂) (Γ₁ , Γ₂)
+
+-- Monotonicity of contraction under extension, which means that if `Γ'` is a
+-- contraction of `Γ`, then the extension of `Γ'` with the assumption `x ∶ τ`
+-- is a contraction of the extension of `Γ` with `x ∶ τ`.
+contract-mono-ext : ∀ Γ Γ' x τ
+  → Contract Γ Γ'
+  → Contract (Γ , x ∶ τ) (Γ' , x ∶ τ)
+contract-mono-ext _ _ x τ (contract Γ₁ Γ₂ x' τ' τ₂ x'-∈-Γ₂) with x ≟ x'
+... | yes x-≡-x' rewrite sym x-≡-x' =
+  contract Γ₁ (Γ₂ , x ∶ τ) x τ' τ (∈-b Γ₂ x τ)
+... | no  x-≢-x' =
+  let x'-∈-Γ₂' : x' ∶ τ₂ ∈ Γ₂ , x ∶ τ
+      x'-∈-Γ₂' = ∈-i Γ₂ x' τ₂ x τ (≢-sym x-≢-x') x'-∈-Γ₂ in
+  contract Γ₁ (Γ₂ , x ∶ τ) x' τ' τ₂ x'-∈-Γ₂'
 
 -- Preservation of inclusion under contraction, which means that if the context `Γ'`
 -- is a contraction of the context `Γ`, and the assumption `x ∶ τ` is in `Γ`,

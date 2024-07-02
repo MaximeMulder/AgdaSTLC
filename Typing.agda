@@ -97,12 +97,12 @@ contract-preserve-ty Γ Γ' _ τ c (t-if Γ τ e₁ e₂ e₃ te₁ te₂ te₃)
   let te₃' : Γ' ⊢ e₃ ∶ τ
       te₃' = contract-preserve-ty Γ Γ' e₃ τ c te₃ in
   t-if Γ' τ e₁ e₂ e₃ te₁' te₂' te₃'
-{- contract-preserve-ty Γ Γ' _ _ w (t-abs Γ x e₂ τ₁ τ₂ te₂) =
-  let w' : Contract (Γ , x ∶ τ₁) (Γ' , x ∶ τ₁)
-      w' = weaken-mono-ext Γ Γ' x τ₁ w in
+contract-preserve-ty Γ Γ' _ _ c (t-abs Γ x e₂ τ₁ τ₂ te₂) =
+  let c' : Contract (Γ , x ∶ τ₁) (Γ' , x ∶ τ₁)
+      c' = contract-mono-ext Γ Γ' x τ₁ c in
   let te₂' : (Γ' , x ∶ τ₁) ⊢ e₂ ∶ τ₂
-      te₂' = ty-weaken (Γ , x ∶ τ₁) (Γ' , x ∶ τ₁) e₂ τ₂ w' te₂ in
-  t-abs Γ' x e₂ τ₁ τ₂ te₂' -}
+      te₂' = contract-preserve-ty (Γ , x ∶ τ₁) (Γ' , x ∶ τ₁) e₂ τ₂ c' te₂ in
+  t-abs Γ' x e₂ τ₁ τ₂ te₂'
 contract-preserve-ty Γ Γ' _ τ c (t-app Γ e₁ e₂ τ₁ τ te₁ te₂) =
   let te₁' : Γ' ⊢ e₁ ∶ ty-abs τ₁ τ
       te₁' = contract-preserve-ty Γ Γ' e₁ (ty-abs τ₁ τ) c te₁ in
