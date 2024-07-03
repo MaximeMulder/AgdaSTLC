@@ -13,8 +13,17 @@ data Exchange : Ctx → Ctx → Set where
     → x₁ ≢ x₂
     → Exchange (Γ , x₁ ∶ τ₁ , x₂ ∶ τ₂ , Γ') (Γ , x₂ ∶ τ₂ , x₁ ∶ τ₁ , Γ')
 
+-- Monotonicity of exchange under extension, which means that if `Γ'` is an
+-- exchange of `Γ`, then the extension of `Γ'` with the assumption `x ∶ τ`
+-- is an exchange of the extension of `Γ` with `x ∶ τ`.
+exchange-mono-ext : ∀ Γ Γ' x τ
+  → Exchange Γ Γ'
+  → Exchange (Γ , x ∶ τ) (Γ' , x ∶ τ)
+exchange-mono-ext Γ Γ' x τ (exchange Γ₁ Γ₂ x₁ τ₁ x₂ τ₂ x₁-≢-x₂) =
+  exchange Γ₁ (Γ₂ , x ∶ τ) x₁ τ₁ x₂ τ₂ x₁-≢-x₂
+
 -- Preservation of inclusion under exchange, which means that if the context `Γ'`
--- is a exchange of the context `Γ`, and the assumption `x ∶ τ` is in `Γ`,
+-- is an exchange of the context `Γ`, and the assumption `x ∶ τ` is in `Γ`,
 -- then `x ∶ τ` is in `Γ'`.
 exchange-preserve-in : ∀ Γ Γ' x τ
   → Exchange Γ Γ'
@@ -39,32 +48,3 @@ exchange-preserve-in Γ Γ' x τ (exchange Γ₁ Γ₂ x₁ τ₁ x₂ τ₂ x�
   in-out-in-concat (Γ₁ , x₂ ∶ τ₂ , x₁ ∶ τ₁) Γ₂ x τ x-∈-Γ₁'' x-∉-Γ₂
 exchange-preserve-in Γ Γ' x τ (exchange Γ₁ Γ₂ x₁ τ₁ x₂ τ₂ x₁-≢-x₂) x-∈-Γ | inj₂ x-∈-Γ₂ =
   in-in-concat (Γ₁ , x₂ ∶ τ₂ , x₁ ∶ τ₁) Γ₂ x τ x-∈-Γ₂
-
--- TODO: This would probably need to be in the typing file.
-{-
-  Typing is preserved under exchange.
--}
-{- p-ty-exchange : ∀ Γ Γ' e τ
-  → Exchange Γ Γ'
-  → Γ ⊢ e ∶ τ
-  → Γ' ⊢ e ∶ τ
-p-ty-exchange Γ Γ' tm-true ty-bool _ (t-true Γ) = t-true Γ'
-p-ty-exchange Γ Γ' tm-false ty-bool _ (t-false Γ) = t-false Γ'
-p-ty-exchange Γ Γ' (tm-if e₁ e₂ e₃) τ p (t-if Γ τ e₁ e₂ e₃ te₁ te₂ te₃) =
-  let te₁' : Γ' ⊢ e₁ ∶ ty-bool
-      te₁' = p-ty-exchange Γ Γ' e₁ ty-bool p te₁ in
-  let te₂' : Γ' ⊢ e₂ ∶ τ
-      te₂' = p-ty-exchange Γ Γ' e₂ τ p te₂ in
-  let te₃' : Γ' ⊢ e₃ ∶ τ
-      te₃' = p-ty-exchange Γ Γ' e₃ τ p te₃ in
-  t-if Γ' τ e₁ e₂ e₃ te₁' te₂' te₃'
-p-ty-exchange Γ Γ' (tm-var x) τ p (t-var Γ x τ ∈-x-τ-Γ) =
-  t-var Γ' x τ (p-in-exchange Γ Γ' x τ p ∈-x-τ-Γ)
-p-ty-exchange Γ Γ' (tm-app e₁ e₂) τ₂ p (t-app Γ e₁ e₂ τ₁ τ₂ te₁ te₂) =
-  let te₁' : Γ' ⊢ e₁ ∶ ty-abs τ₁ τ₂
-      te₁' = p-ty-exchange Γ Γ' e₁ (ty-abs τ₁ τ₂) p te₁ in
-  let te₂' : Γ' ⊢ e₂ ∶ τ₂
-      te₂' = p-ty-exchange Γ Γ' e₂ τ₂ p te₂ in
-  t-app Γ' e₁ e₂ τ₁ τ₂ te₁' te₂'
-p-ty-exchange Γ Γ' (tm-abs x τ₁ e) _ p (t-abs Γ x τ₁ τ₂ e te₂) =
-  t-abs Γ' x τ₁ τ₂ e _ -}

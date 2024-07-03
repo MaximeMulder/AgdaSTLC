@@ -2,6 +2,7 @@ open import Relation.Binary.PropositionalEquality using (sym; ≢-sym)
 
 open import Ctx
 open import CtxContract
+open import CtxExchange
 open import CtxWeaken
 open import Subst
 open import Syntax
@@ -110,6 +111,40 @@ contract-preserve-ty Γ Γ' _ τ c (t-app Γ e₁ e₂ τ₁ τ te₁ te₂) =
       te₂' = contract-preserve-ty Γ Γ' e₂ τ₁ c te₂ in
   t-app Γ' e₁ e₂ τ₁ τ te₁' te₂'
 
+-- Preservation of typing under weakening, which means that if the context `Γ'`
+-- is a weakening of the context `Γ`, and that the term `e` has type `τ` under `Γ`,
+-- then `e` also has type `τ` under `Γ'`.
+exchange-preserve-ty : ∀ Γ Γ' e τ
+  → Exchange Γ Γ'
+  → Γ ⊢ e ∶ τ
+  → Γ' ⊢ e ∶ τ
+exchange-preserve-ty Γ Γ' _ _ _ (t-true Γ) = t-true Γ'
+exchange-preserve-ty Γ Γ' _ _ _  (t-false Γ) = t-false Γ'
+exchange-preserve-ty Γ Γ' _ _ ex (t-var Γ x τ x-∈-Γ) =
+  let x-∈-Γ' : x ∶ τ ∈ Γ'
+      x-∈-Γ' = exchange-preserve-in Γ Γ' x τ ex x-∈-Γ in
+  t-var Γ' x τ x-∈-Γ'
+exchange-preserve-ty Γ Γ' _ τ ex (t-if Γ τ e₁ e₂ e₃ te₁ te₂ te₃) =
+  let te₁' : Γ' ⊢ e₁ ∶ ty-bool
+      te₁' = exchange-preserve-ty Γ Γ' e₁ ty-bool ex te₁ in
+  let te₂' : Γ' ⊢ e₂ ∶ τ
+      te₂' = exchange-preserve-ty Γ Γ' e₂ τ ex te₂ in
+  let te₃' : Γ' ⊢ e₃ ∶ τ
+      te₃' = exchange-preserve-ty Γ Γ' e₃ τ ex te₃ in
+  t-if Γ' τ e₁ e₂ e₃ te₁' te₂' te₃'
+exchange-preserve-ty Γ Γ' _ _ ex (t-abs Γ x e₂ τ₁ τ₂ te₂) =
+  let ex' : Exchange (Γ , x ∶ τ₁) (Γ' , x ∶ τ₁)
+      ex' = exchange-mono-ext Γ Γ' x τ₁ ex in
+  let te₂' : (Γ' , x ∶ τ₁) ⊢ e₂ ∶ τ₂
+      te₂' = exchange-preserve-ty (Γ , x ∶ τ₁) (Γ' , x ∶ τ₁) e₂ τ₂ ex' te₂ in
+  t-abs Γ' x e₂ τ₁ τ₂ te₂'
+exchange-preserve-ty Γ Γ' _ τ ex (t-app Γ e₁ e₂ τ₁ τ te₁ te₂) =
+  let te₁' : Γ' ⊢ e₁ ∶ ty-abs τ₁ τ
+      te₁' = exchange-preserve-ty Γ Γ' e₁ (ty-abs τ₁ τ) ex te₁ in
+  let te₂' : Γ' ⊢ e₂ ∶ τ₁
+      te₂' = exchange-preserve-ty Γ Γ' e₂ τ₁ ex te₂ in
+  t-app Γ' e₁ e₂ τ₁ τ te₁' te₂'
+
 -- If a term `e` has type `τ` in the empty context `∅`, then `e` also has type `τ`
 -- in any context.
 ty-nil : ∀ Γ e τ
@@ -148,14 +183,17 @@ subst-preserve-ty Γ x eₓ τₓ e τ e' teₓ (t-if (Γ , x ∶ τₓ) τ e₁
       te₃' = subst-preserve-ty Γ x eₓ τₓ e₃ τ e₃' teₓ te₃ se₃' in
   t-if Γ τ e₁' e₂' e₃' te₁' te₂' te₃'
 subst-preserve-ty Γ x eₓ τₓ e τ e' teₓ (t-abs (Γ , x ∶ τₓ) x e₂ τ₁ τ₂ te₂) (subst-abs-eq x eₓ τ₁ e₂) =
-  let con-Γ : Contract (Γ , x ∶ τₓ , x ∶ τ₁) (Γ , x ∶ τ₁)
-      con-Γ = contract Γ (∅ , x ∶ τ₁) x τₓ τ₁ (∈-b ∅ x τ₁) in
-  t-abs Γ x e₂ τ₁ τ₂ (contract-preserve-ty (Γ , x ∶ τₓ , x ∶ τ₁) (Γ , x ∶ τ₁) e₂ τ₂ con-Γ te₂)
+  let c : Contract (Γ , x ∶ τₓ , x ∶ τ₁) (Γ , x ∶ τ₁)
+      c = contract Γ (∅ , x ∶ τ₁) x τₓ τ₁ (∈-b ∅ x τ₁) in
+  t-abs Γ x e₂ τ₁ τ₂ (contract-preserve-ty (Γ , x ∶ τₓ , x ∶ τ₁) (Γ , x ∶ τ₁) e₂ τ₂ c te₂)
 subst-preserve-ty Γ x eₓ τₓ e τ e' teₓ (t-abs (Γ , x ∶ τₓ) x₁ e₂ τ₁ τ₂ te₂) (subst-abs-ne x eₓ x₁ τ₁ e₂ e₂' x-≢-x₁ se₂) =
-  {- TODO: Prove exchange -}
-  let te₂' : Γ , x₁ ∶ τ₁ ⊢ e₂' ∶ τ₂
-      te₂' = subst-preserve-ty (Γ , x₁ ∶ τ₁) x eₓ τₓ e₂ τ₂ e₂' teₓ _ se₂ in
-  t-abs Γ x₁ e₂' τ₁ τ₂ te₂'
+  let ex : Exchange (Γ , x ∶ τₓ , x₁ ∶ τ₁) (Γ , x₁ ∶ τ₁ , x ∶ τₓ)
+      ex = exchange Γ ∅ x τₓ x₁ τ₁ x-≢-x₁ in
+  let te₂' : Γ , x₁ ∶ τ₁ , x ∶ τₓ ⊢ e₂ ∶ τ₂
+      te₂' = exchange-preserve-ty (Γ , x ∶ τₓ , x₁ ∶ τ₁) (Γ , x₁ ∶ τ₁ , x ∶ τₓ) e₂ τ₂ ex te₂ in 
+  let te₂'' : Γ , x₁ ∶ τ₁ ⊢ e₂' ∶ τ₂
+      te₂'' = subst-preserve-ty (Γ , x₁ ∶ τ₁) x eₓ τₓ e₂ τ₂ e₂' teₓ te₂' se₂ in
+  t-abs Γ x₁ e₂' τ₁ τ₂ te₂''
 subst-preserve-ty Γ x eₓ τₓ e τ e' teₓ (t-app (Γ , x ∶ τₓ) e₁ e₂ τ₁ τ₂ te₁ te₂) (subst-app x eₓ e₁ e₂ e₁' e₂' se₁ se₂) =
   let te₁' : Γ ⊢ e₁' ∶ ty-abs τ₁ τ₂
       te₁' = subst-preserve-ty Γ x eₓ τₓ e₁ (ty-abs τ₁ τ₂) e₁' teₓ te₁ se₁ in
