@@ -1,3 +1,5 @@
+open import Data.Product using (∃-syntax) renaming (_,_ to ⟨_,_⟩)
+
 open import Ctx
 open import Eval
 open import Subst
@@ -30,5 +32,6 @@ progress e τ (t-var ∅ x τ ())
 progress e τ (t-app ∅ e₁ e₂ τ₁ τ₂ te₁ _) with progress e₁ (ty-abs τ₁ τ₂) te₁
 ... | progress-s e₁' pe₁ =
   progress-s (tm-app e₁' e₂) (s-app-step e₁ e₁' e₂ pe₁)
-... | progress-v (v-abs x τ₁' e₁') =
-  progress-s _ _
+... | progress-v (v-abs x τ₁' e₁') with subst-total e₁' x e₂
+... | ⟨ e₁'' , se₁'' ⟩ =
+  progress-s e₁'' (s-app x τ₁' e₁' e₁'' e₂ se₁'')
