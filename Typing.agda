@@ -1,11 +1,11 @@
 open import Relation.Binary.PropositionalEquality using (sym; ≢-sym)
 
+open import Contract
 open import Ctx
-open import CtxContract
-open import CtxExchange
-open import CtxWeaken
+open import Exchange
 open import Subst
 open import Syntax
+open import Weaken
 
 -- The typing relation, which describes a well-typed term and its type.
 data _⊢_∶_ : Ctx → Term → Type → Set where
@@ -190,7 +190,7 @@ subst-preserve-ty Γ x eₓ τₓ e τ e' teₓ (t-abs (Γ , x ∶ τₓ) x₁ e
   let ex : Exchange (Γ , x ∶ τₓ , x₁ ∶ τ₁) (Γ , x₁ ∶ τ₁ , x ∶ τₓ)
       ex = exchange Γ ∅ x τₓ x₁ τ₁ x-≢-x₁ in
   let te₂' : Γ , x₁ ∶ τ₁ , x ∶ τₓ ⊢ e₂ ∶ τ₂
-      te₂' = exchange-preserve-ty (Γ , x ∶ τₓ , x₁ ∶ τ₁) (Γ , x₁ ∶ τ₁ , x ∶ τₓ) e₂ τ₂ ex te₂ in 
+      te₂' = exchange-preserve-ty (Γ , x ∶ τₓ , x₁ ∶ τ₁) (Γ , x₁ ∶ τ₁ , x ∶ τₓ) e₂ τ₂ ex te₂ in
   let te₂'' : Γ , x₁ ∶ τ₁ ⊢ e₂' ∶ τ₂
       te₂'' = subst-preserve-ty (Γ , x₁ ∶ τ₁) x eₓ τₓ e₂ τ₂ e₂' teₓ te₂' se₂ in
   t-abs Γ x₁ e₂' τ₁ τ₂ te₂''
