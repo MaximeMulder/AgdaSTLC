@@ -130,11 +130,11 @@ in-in-concat (Γ₁ , x₁ ∶ τ₁) Γ₂ x τ x-∈-Γ₂ rewrite concat-comm
 -- If the assumption `x ∶ τ` is in the extension of the context `Γ` with the
 -- assumption `x' ∶ τ'`, and `x` is distinct from `x'`, then `x ∶ τ` is in `Γ`.
 in-ext-distinct-in : ∀ Γ x τ x' τ'
-  → x ∶ τ ∈ Γ , x' ∶ τ'
   → x ≢ x'
+  → x ∶ τ ∈ Γ , x' ∶ τ'
   → x ∶ τ ∈ Γ
-in-ext-distinct-in Γ x τ x τ (∈-b Γ x τ) x-≢-x = contradiction refl x-≢-x
-in-ext-distinct-in Γ x τ x' τ' (∈-i Γ x τ x' τ' _ x-∈-Γ) _ = x-∈-Γ
+in-ext-distinct-in Γ x τ x τ x-≢-x (∈-b Γ x τ) = contradiction refl x-≢-x
+in-ext-distinct-in Γ x τ x' τ' _ (∈-i Γ x τ x' τ' _ x-∈-Γ) = x-∈-Γ
 
 -- If the assumption `x ∶ τ` is in the concatenation of the contexts `Γ₁` and `Γ₂`,
 -- and `x` is not in `Γ₂`, then `x ∶ τ` is in `Γ₁`.
@@ -145,7 +145,7 @@ in-concat-out-in : ∀ Γ₁ Γ₂ x τ
 in-concat-out-in Γ₁ ∅ x τ x-∈-Γ (∉-b x) = x-∈-Γ
 in-concat-out-in Γ₁ (Γ₂ , x₂ ∶ τ₂) x τ x-∈-Γ (∉-i Γ₂ x x₂ τ₂ x-≢-x₂ x-∉-Γ₂) =
   let x-∈-Γ' : x ∶ τ ∈ (Γ₁ , Γ₂)
-      x-∈-Γ' = in-ext-distinct-in (Γ₁ , Γ₂) x τ x₂ τ₂ x-∈-Γ x-≢-x₂ in
+      x-∈-Γ' = in-ext-distinct-in (Γ₁ , Γ₂) x τ x₂ τ₂ x-≢-x₂ x-∈-Γ in
   in-concat-out-in Γ₁ Γ₂ x τ x-∈-Γ' x-∉-Γ₂
 
 -- Uniqueness of type under inclusion, which means that if the entries `x ∶ τ₁`

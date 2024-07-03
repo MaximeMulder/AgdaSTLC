@@ -44,7 +44,7 @@ contract-preserve-in Γ Γ' x τ (contract Γ₁ Γ₂ x' τ' τ₂ x'-∈-Γ₂
   contradiction x-≡-x' x-≢-x'
 ... | no  x-≢-x' =
   let x-∈-Γ₁ : x ∶ τ ∈ Γ₁
-      x-∈-Γ₁ = in-ext-distinct-in Γ₁ x τ x' τ' x-∈-Γ₁' x-≢-x' in
+      x-∈-Γ₁ = in-ext-distinct-in Γ₁ x τ x' τ' x-≢-x' x-∈-Γ₁' in
   in-out-in-concat Γ₁ Γ₂ x τ x-∈-Γ₁ x-∉-Γ₂
 contract-preserve-in Γ  Γ' x τ (contract Γ₁ Γ₂ x' τ' τ₂ x'-∈-Γ₂) x-∈-Γ | inj₂ x-∈-Γ₂ =
   in-in-concat Γ₁ Γ₂ x τ x-∈-Γ₂

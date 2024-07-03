@@ -137,7 +137,7 @@ subst-preserve-ty Γ x eₓ τₓ e τ e' teₓ (t-var (Γ , x ∶ τₓ) x τ x
   ty-nil Γ eₓ τ teₓ
 subst-preserve-ty Γ x eₓ τₓ e τ e' teₓ (t-var (Γ , x ∶ τₓ) x' τ x'-∈-Γ) (subst-var-ne x eₓ x' x-≢-x') =
   let x'-∈-Γ : x' ∶ τ ∈ Γ
-      x'-∈-Γ = in-ext-distinct-in Γ x' τ x τₓ x'-∈-Γ (≢-sym x-≢-x') in
+      x'-∈-Γ = in-ext-distinct-in Γ x' τ x τₓ (≢-sym x-≢-x') x'-∈-Γ in
   t-var Γ x' τ x'-∈-Γ
 subst-preserve-ty Γ x eₓ τₓ e τ e' teₓ (t-if (Γ , x ∶ τₓ) τ e₁ e₂ e₃ te₁ te₂ te₃) (subst-if x eₓ e₁ e₂ e₃ e₁' e₂' e₃' se₁' se₂' se₃') =
   let te₁' : Γ  ⊢ e₁' ∶ ty-bool
@@ -151,20 +151,11 @@ subst-preserve-ty Γ x eₓ τₓ e τ e' teₓ (t-abs (Γ , x ∶ τₓ) x e₂
   let con-Γ : Contract (Γ , x ∶ τₓ , x ∶ τ₁) (Γ , x ∶ τ₁)
       con-Γ = contract Γ (∅ , x ∶ τ₁) x τₓ τ₁ (∈-b ∅ x τ₁) in
   t-abs Γ x e₂ τ₁ τ₂ (contract-preserve-ty (Γ , x ∶ τₓ , x ∶ τ₁) (Γ , x ∶ τ₁) e₂ τ₂ con-Γ te₂)
-subst-preserve-ty Γ x eₓ τₓ e τ e' teₓ (t-abs (Γ , x ∶ τₓ) x' e₂ τ₁ τ₂ te₂) (subst-abs-ne x eₓ x₁ τ₁ e₂ e₂' x-≢-x₁ se₂) =
-  t-abs Γ x' e₂' τ₁ τ₂ _
-
-{- p-subst-preserve-ty Γ x eₓ τₓ e τ e' teₓ (t-abs (x ↪ τₓ :: Γ) y τ₁ τ₂ e₂ te₂) (subst-abs x eₓ y τ₁ e₂ e₂' se₂') =
-  {- te₂ : (y ↪ τ₁ :: (x ↪ τₓ :: Γ)) ⊢ e₂ ∶ τ₂
-     ?0 : (x ↪ τₓ :: (y ↪ τ₁ :: Γ)) ⊢ e₂ ∶ τ₂
-  let i : (y ↪ τ₁ :: Γ) ⊢ e₂' ∶ τ₂
-      i = p-subst-preserve-ty (y ↪ τ₁ :: Γ) x eₓ τₓ e₂ τ₂ e₂' teₓ {!  !} se₂' in -}
-  t-abs Γ y τ₁ τ₂ e₂' _ -}
-{- p-subst-preserve-ty Γ x eₓ τₓ e τ e' teₓ (t-abs (Γ , x ∶ τₓ) x₁ τ₁ τ₂ e₂ te₂) (subst-abs-eq x eₓ x₁ τ₁ e₂ x-≡-x₁) =
-  let e₂-∶-τ₂ :
-      e₂-∶-τ₂ = _ in
-
-  t-abs Γ x τ₁ τ₂ e₂ _ -}
+subst-preserve-ty Γ x eₓ τₓ e τ e' teₓ (t-abs (Γ , x ∶ τₓ) x₁ e₂ τ₁ τ₂ te₂) (subst-abs-ne x eₓ x₁ τ₁ e₂ e₂' x-≢-x₁ se₂) =
+  {- TODO: Prove exchange -}
+  let te₂' : Γ , x₁ ∶ τ₁ ⊢ e₂' ∶ τ₂
+      te₂' = subst-preserve-ty (Γ , x₁ ∶ τ₁) x eₓ τₓ e₂ τ₂ e₂' teₓ _ se₂ in
+  t-abs Γ x₁ e₂' τ₁ τ₂ te₂'
 subst-preserve-ty Γ x eₓ τₓ e τ e' teₓ (t-app (Γ , x ∶ τₓ) e₁ e₂ τ₁ τ₂ te₁ te₂) (subst-app x eₓ e₁ e₂ e₁' e₂' se₁ se₂) =
   let te₁' : Γ ⊢ e₁' ∶ ty-abs τ₁ τ₂
       te₁' = subst-preserve-ty Γ x eₓ τₓ e₁ (ty-abs τ₁ τ₂) e₁' teₓ te₁ se₁ in
