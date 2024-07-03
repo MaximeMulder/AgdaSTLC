@@ -1,3 +1,4 @@
+open import Subst
 open import Syntax
 
 -- The value relation, which describes which terms are values.
@@ -15,9 +16,9 @@ data _↦_ : Term → Term → Set where
   s-if-step : ∀ e₁ e₁' e₂ e₃
     → e₁ ↦ e₁'
     → tm-if e₁ e₂ e₃ ↦ tm-if e₁' e₂ e₃
-  s-app : ∀ e₁ e₂ x τ e
-    {- → tm-app e₁ e₂ ↦ (e [ e₂ / x ]) -}
-    → tm-app (tm-abs x τ e₁) e₂ ↦ e
+  s-app : ∀ x τ e₁ e₁' e₂
+    → e₁ [ e₂ / x ]⇛ e₁'
+    → tm-app (tm-abs x τ e₁) e₂ ↦ e₁'
   s-app-step : ∀ e₁ e₁' e₂
     → e₁ ↦ e₁'
     → tm-app e₁ e₂ ↦ tm-app e₁' e₂
