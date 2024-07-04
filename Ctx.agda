@@ -79,13 +79,13 @@ in-out-distinct (Γ , x' ∶ τ') x y τ (∈-i Γ x τ x' τ' _ ∈-x-Γ) (∉-
 
 -- For all context `Γ` and variable `x`, either there exists a type `τ` such that the
 -- assumption `x ∶ τ` is in `Γ`, or `x` is not in `Γ`.
-either-in-out : ∀ Γ x → ∃[ τ ] x ∶ τ ∈ Γ ⊎ x ∉ Γ
-either-in-out ∅ x =
+either-ex-in-out : ∀ Γ x → ∃[ τ ] x ∶ τ ∈ Γ ⊎ x ∉ Γ
+either-ex-in-out ∅ x =
   inj₂ (∉-b x)
-either-in-out (Γ , x' ∶ τ') x with x ≟ x'
+either-ex-in-out (Γ , x' ∶ τ') x with x ≟ x'
 ... | yes x-≡-x' rewrite x-≡-x' =
   inj₁ ⟨ τ' , ∈-b Γ x' τ' ⟩
-... | no  x-≢-x' with either-in-out Γ x
+... | no  x-≢-x' with either-ex-in-out Γ x
 ... | inj₁ ⟨ τ , x-∈-Γ ⟩ =
   inj₁ ⟨ τ , ∈-i Γ x τ x' τ' x-≢-x' x-∈-Γ ⟩
 ... | inj₂ x-∉-Γ =
@@ -103,6 +103,13 @@ in-concat-either-in-out Γ₁ (Γ₂ , x₂ ∶ τ₂) x τ (∈-b Γ x τ) =
 in-concat-either-in-out Γ₁ (Γ₂ , x₂ ∶ τ₂) x τ (∈-i Γ x τ x₂ τ₂ x-≢-x₂ x-∈-Γ) with in-concat-either-in-out Γ₁ Γ₂ x τ x-∈-Γ
 ... | inj₁ ⟨ x-∈-Γ₁ , x-∉-Γ₂ ⟩ = inj₁ ⟨ x-∈-Γ₁ , ∉-i Γ₂ x x₂ τ₂ x-≢-x₂ x-∉-Γ₂ ⟩
 ... | inj₂ x-∈-Γ₂ = inj₂ (∈-i Γ₂ x τ x₂ τ₂ x-≢-x₂ x-∈-Γ₂)
+
+-- If the assumption `x ∶ τ` is in the context `Γ`
+-- TODO: Proof
+postulate
+  in-ex-concat : ∀ Γ x τ
+    → x ∶ τ ∈ Γ
+    → ∃[ Γ₁ ] ∃[ Γ₂ ] (Γ ≡ Γ₁ , x ∶ τ , Γ₂ × x ∉ Γ₁)
 
 -- If the assumption `x ∶ τ` is in the context `Γ₁`, and `x` is out of the
 -- context `Γ₂`, then `x ∶ τ` is in the concatenation of `Γ₁` and `Γ₂`.
