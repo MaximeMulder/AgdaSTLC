@@ -42,22 +42,13 @@ weaken-mono-ext _ _ x τ (weaken-∈ Γ₁ Γ₂ x' τ' τ₂ x'-∈-Γ₂) with
 ... | yes x-≡-x' rewrite sym x-≡-x' = weaken-∈ Γ₁ (Γ₂ , x ∶ τ) x τ' τ (∈-b Γ₂ x τ)
 ... | no  x-≢-x' = weaken-∈ Γ₁ (Γ₂ , x ∶ τ) x' τ' τ₂ (∈-i Γ₂ x' τ₂ x τ (≢-sym x-≢-x') x'-∈-Γ₂)
 
--- TODO: This function can probably be generalized for any concatenation.
--- TODO: Prove.
 postulate
-  weaken*-concat-nil-cons : ∀ Γ x τ
+  weaken*-concat-nil-ext : ∀ Γ x τ
     → Weaken* ∅ Γ
     → Weaken* ∅ (∅ , x ∶ τ)
     → Weaken* ∅ (Γ , x ∶ τ)
 
-
--- TODO: There must be a better way to rewrite the expressions without utility functions
-weaken*-nil-util-1 : ∀ Γ → Weaken* ∅ Γ → Weaken* ∅ (∅ , Γ)
-weaken*-nil-util-1 Γ weak rewrite concat-ident-l Γ = weak
-
-weaken*-nil-util-2 : ∀ Γ x τ → Weaken* ∅ ((∅ , Γ) , (∅ , x ∶ τ)) → Weaken* ∅ (Γ , x ∶ τ)
-weaken*-nil-util-2 Γ x τ weak rewrite concat-ident-l (Γ , x ∶ τ) = weak
-
+-- Any context `Γ` is a weakening of the empty context `∅`.
 weaken*-nil : ∀ Γ → Weaken* ∅ Γ
 weaken*-nil ∅ = weaken*-refl ∅
 weaken*-nil (Γ , x ∶ τ) =
@@ -67,7 +58,7 @@ weaken*-nil (Γ , x ∶ τ) =
       weak-x = weaken*-base ∅ (∅ , x ∶ τ) (weaken-∉ ∅ ∅ x τ (∉-b x)) in
   let ∅-Γ-≡-Γ : (∅ , Γ , (∅ , x ∶ τ)) ≡ Γ , x ∶ τ
       ∅-Γ-≡-Γ = concat-ident-l (Γ , (∅ , x ∶ τ)) in
-  weaken*-concat-nil-cons Γ x τ weak-Γ weak-x
+  weaken*-concat-nil-ext Γ x τ weak-Γ weak-x
 
 -- Preservation of inclusion under weakening, which means that if the context `Γ'`
 -- is a weakening of the context `Γ`, and the assumption `x ∶ τ` is in `Γ`, then `x ∶ τ`

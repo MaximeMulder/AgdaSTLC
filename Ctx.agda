@@ -1,15 +1,17 @@
-open import Data.Product using (_×_) renaming (_,_ to ⟨_,_⟩)
+open import Data.Product using (_×_; ∃-syntax) renaming (_,_ to ⟨_,_⟩)
 open import Data.String using (String)
+open import Data.String.Properties using (_≟_)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; cong; refl; sym; ≢-sym)
+open import Relation.Nullary using (yes; no)
 open import Relation.Nullary.Negation using (contradiction)
 
 open import Syntax
 
-infixl 21 _,_
-infixl 21 _,_∶_
-infix 20 _∶_∈_
-infix 20 _∉_
+infixl 22 _,_
+infixl 22 _,_∶_
+infix 21 _∶_∈_
+infix 21 _∉_
 
 -- The typing context.
 data Ctx : Set  where
@@ -74,6 +76,20 @@ in-out-distinct (Γ , x ∶ τ) x y τ (∈-b Γ x τ) (∉-i Γ y x τ ≢-yx _
   ≢-sym ≢-yx
 in-out-distinct (Γ , x' ∶ τ') x y τ (∈-i Γ x τ x' τ' _ ∈-x-Γ) (∉-i Γ y x' τ' _ ∉-y-Γ) =
   in-out-distinct Γ x y τ ∈-x-Γ ∉-y-Γ
+
+-- For all context `Γ` and variable `x`, either there exists a type `τ` such that the
+-- assumption `x ∶ τ` is in `Γ`, or `x` is not in `Γ`.
+either-in-out : ∀ Γ x → ∃[ τ ] x ∶ τ ∈ Γ ⊎ x ∉ Γ
+either-in-out ∅ x =
+  inj₂ (∉-b x)
+either-in-out (Γ , x' ∶ τ') x with x ≟ x'
+... | yes x-≡-x' rewrite x-≡-x' =
+  inj₁ ⟨ τ' , ∈-b Γ x' τ' ⟩
+... | no  x-≢-x' with either-in-out Γ x
+... | inj₁ ⟨ τ , x-∈-Γ ⟩ =
+  inj₁ ⟨ τ , ∈-i Γ x τ x' τ' x-≢-x' x-∈-Γ ⟩
+... | inj₂ x-∉-Γ =
+  inj₂ (∉-i Γ x x' τ' x-≢-x' x-∉-Γ)
 
 -- If the assumption `x ∶ τ` is in the concatenation of the contexts `Γ₁` and `Γ₂`,
 -- then either `x ∶ τ` is in `Γ₁` and `x` is out of `Γ₂`, or `x ∶ τ` is in `Γ₂`.
