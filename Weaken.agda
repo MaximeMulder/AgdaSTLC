@@ -42,36 +42,7 @@ weaken-mono-ext _ _ x τ (weaken-∈ Γ₁ Γ₂ x' τ' τ₂ x'-∈-Γ₂) with
 ... | yes x-≡-x' rewrite sym x-≡-x' = weaken-∈ Γ₁ (Γ₂ , x ∶ τ) x τ' τ (∈-b Γ₂ x τ)
 ... | no  x-≢-x' = weaken-∈ Γ₁ (Γ₂ , x ∶ τ) x' τ' τ₂ (∈-i Γ₂ x' τ₂ x τ (≢-sym x-≢-x') x'-∈-Γ₂)
 
-{- weaken*-concat-nil-ext : ∀ Γ x τ
-  → Weaken* ∅ Γ
-  → Weaken* ∅ (∅ , x ∶ τ)
-  → Weaken* ∅ (Γ , x ∶ τ)
-{- weaken*-concat-nil-ext ∅ x τ w w' =
-  w' -}
-weaken*-concat-nil-ext Γ x τ weak-∅-Γ weak-∅-x with either-ex-in-out Γ x
-... | inj₁ ⟨ τ' , x-∈-Γ ⟩ with in-ex-concat Γ x τ' x-∈-Γ
-... | ⟨ Γ₁ , ⟨ Γ₂ , ⟨ Γ₁₂-≡-Γ , x-∉-Γ₂ ⟩ ⟩ ⟩ =
-  let weak-∅-Γ₁ :
-      weak-∅-Γ₁ = weak-conca-nil-ext Γin
-  _
-weaken*-concat-nil-ext Γ x τ weak-∅-Γ weak-∅-x | inj₂ x-∉-Γ =
-  let weak-Γ-x : Weaken Γ (Γ , x ∶ τ)
-      weak-Γ-x = weaken-∉ Γ ∅ x τ x-∉-Γ in
-  weaken*-trans weak-∅-Γ (weaken*-base weak-Γ-x)
-
--- Any context `Γ` is a weakening of the empty context `∅`.
-weaken*-nil : ∀ Γ → Weaken* ∅ Γ
-weaken*-nil ∅ =
-  weaken*-refl ∅
-weaken*-nil (Γ , x ∶ τ) =
-  let weak-Γ : Weaken* ∅ Γ
-      weak-Γ = weaken*-nil Γ in
-  let weak-x : Weaken* ∅ (∅ , x ∶ τ)
-      weak-x = weaken*-base (weaken-∉ ∅ ∅ x τ (∉-b x)) in
-  let ∅-Γ-≡-Γ : (∅ , Γ , (∅ , x ∶ τ)) ≡ Γ , x ∶ τ
-      ∅-Γ-≡-Γ = concat-ident-l (Γ , (∅ , x ∶ τ)) in
-  weaken*-concat-nil-ext Γ x τ weak-Γ weak-x -}
-
+-- TODO: Add an induction variable, which is the length of the context
 weaken*-nil : ∀ Γ → Weaken* ∅ Γ
 weaken*-nil ∅ =
   weaken*-refl ∅
@@ -81,15 +52,14 @@ weaken*-nil (Γ , x ∶ τ) with either-ex-in-out Γ x
       weak-∅-Γ = weaken*-nil Γ in
   let weak-Γ-x : Weaken Γ (Γ , x ∶ τ)
       weak-Γ-x = weaken-∉ Γ ∅ x τ x-∉-Γ in
-  weaken*-trans (weak-∅-Γ) (weaken*-base weak-Γ-x)  
+  weaken*-trans weak-∅-Γ (weaken*-base weak-Γ-x)
 ... | inj₁ ⟨ τ' , x-∈-Γ ⟩ with in-ex-concat Γ x τ' x-∈-Γ
-... | ⟨ Γ₁ , ⟨ Γ₂ , ⟨ Γ₁₂-≡-Γ , x-∉-Γ₁ ⟩ ⟩ ⟩ =
-  let weak-∅-Γ₁ : Weaken* ∅ Γ₁
-      weak-∅-Γ₁ = weaken*-nil Γ₁ in
-  let weak-∅-Γ₁' : Weaken* ∅ (Γ₁ , x ∶ τ')
-      weak-∅-Γ₁' = weaken*-trans weak-∅-Γ₁ (weaken*-base (weaken-∉ Γ₁ ∅ x τ' x-∉-Γ₁)) in
-  _
-  -- Notes : Maybe pattern match on Γ₂ equal ∅ or (∅ , x₂ ∶ τ₂, Γ₂') ?
+... | ⟨ Γ₁ , ⟨ Γ₂ , ⟨ Γ₁₂-≡-Γ , x-∉-Γ₁ ⟩ ⟩ ⟩ rewrite Γ₁₂-≡-Γ =
+  let weak-∅-Γ : Weaken* ∅ (Γ₁ , (Γ₂ , x ∶ τ))
+      weak-∅-Γ = weaken*-nil (Γ₁ , (Γ₂ , x ∶ τ)) in
+  let weak-Γ-x : Weaken* (Γ₁ , (Γ₂ , x ∶ τ)) ((Γ₁ , x ∶ τ') , (Γ₂ , x ∶ τ))
+      weak-Γ-x = weaken*-base (weaken-∉ Γ₁ (Γ₂ , x ∶ τ) x τ' x-∉-Γ₁) in
+  weaken*-trans weak-∅-Γ weak-Γ-x
 
 -- Preservation of inclusion under weakening, which means that if the context `Γ'`
 -- is a weakening of the context `Γ`, and the assumption `x ∶ τ` is in `Γ`, then `x ∶ τ`
