@@ -1,3 +1,4 @@
+open import Data.Nat using (suc)
 open import Data.Product using (_×_) renaming (_,_ to ⟨_,_⟩)
 open import Data.String.Properties using (_≟_)
 open import Data.Sum using (inj₁; inj₂)
@@ -42,24 +43,29 @@ weaken-mono-ext _ _ x τ (weaken-∈ Γ₁ Γ₂ x' τ' τ₂ x'-∈-Γ₂) with
 ... | yes x-≡-x' rewrite sym x-≡-x' = weaken-∈ Γ₁ (Γ₂ , x ∶ τ) x τ' τ (∈-b Γ₂ x τ)
 ... | no  x-≢-x' = weaken-∈ Γ₁ (Γ₂ , x ∶ τ) x' τ' τ₂ (∈-i Γ₂ x' τ₂ x τ (≢-sym x-≢-x') x'-∈-Γ₂)
 
--- TODO: Add an induction variable, which is the length of the context
-weaken*-nil : ∀ Γ → Weaken* ∅ Γ
-weaken*-nil ∅ =
+weaken*-nil-length : ∀ {Γ n} → Length Γ n → Weaken* ∅ Γ
+weaken*-nil-length length-zero =
   weaken*-refl ∅
-weaken*-nil (Γ , x ∶ τ) with either-ex-in-out Γ x
+weaken*-nil-length (length-suc Γ n x τ length-Γ) with either-ex-in-out Γ x
 ... | inj₂ x-∉-Γ =
   let weak-∅-Γ : Weaken* ∅ Γ
-      weak-∅-Γ = weaken*-nil Γ in
+      weak-∅-Γ = weaken*-nil-length length-Γ in
   let weak-Γ-x : Weaken Γ (Γ , x ∶ τ)
       weak-Γ-x = weaken-∉ Γ ∅ x τ x-∉-Γ in
   weaken*-trans weak-∅-Γ (weaken*-base weak-Γ-x)
 ... | inj₁ ⟨ _ , x-∈-Γ ⟩ with in-ex-concat x-∈-Γ
 ... | ⟨ Γ₁ , ⟨ Γ₂ , ⟨ τ' , ⟨ Γ₁₂-≡-Γ , x-∉-Γ₁ ⟩ ⟩ ⟩ ⟩ rewrite Γ₁₂-≡-Γ =
+  let length-Γ' : Length (Γ₁ , (Γ₂ , x ∶ τ)) n
+      length-Γ' = length-ext-concat Γ₁ (Γ₂ , x ∶ τ) x τ' n (length-suc (Γ₁ , x ∶ τ' , Γ₂) n x τ length-Γ) in
   let weak-∅-Γ : Weaken* ∅ (Γ₁ , (Γ₂ , x ∶ τ))
-      weak-∅-Γ = weaken*-nil (Γ₁ , (Γ₂ , x ∶ τ)) in
+      weak-∅-Γ = weaken*-nil-length length-Γ' in
   let weak-Γ-x : Weaken* (Γ₁ , (Γ₂ , x ∶ τ)) ((Γ₁ , x ∶ τ') , (Γ₂ , x ∶ τ))
       weak-Γ-x = weaken*-base (weaken-∉ Γ₁ (Γ₂ , x ∶ τ) x τ' x-∉-Γ₁) in
   weaken*-trans weak-∅-Γ weak-Γ-x
+
+weaken*-nil : ∀ Γ → Weaken* ∅ Γ
+weaken*-nil Γ with length Γ
+... | ⟨ _ , length-Γ ⟩ = weaken*-nil-length length-Γ
 
 -- Preservation of inclusion under weakening, which means that if the context `Γ'`
 -- is a weakening of the context `Γ`, and the assumption `x ∶ τ` is in `Γ`, then `x ∶ τ`

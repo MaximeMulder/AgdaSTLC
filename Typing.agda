@@ -70,9 +70,9 @@ weaken*-preserve-ty : ∀ Γ Γ' e τ
   → Γ' ⊢ e ∶ τ
 weaken*-preserve-ty Γ Γ e τ (weaken*-refl Γ) te =
   te
-weaken*-preserve-ty Γ Γ' e τ (weaken*-base Γ Γ' e-Γ-Γ') te =
+weaken*-preserve-ty Γ Γ' e τ (weaken*-base e-Γ-Γ') te =
   weaken-preserve-ty Γ Γ' e τ e-Γ-Γ' te
-weaken*-preserve-ty Γ Γ'' e τ (weaken*-trans Γ Γ' Γ'' ext-Γ-Γ' ext-Γ'-Γ'') te =
+weaken*-preserve-ty Γ Γ'' e τ (weaken*-trans {Γ} {Γ'} {Γ''} ext-Γ-Γ' ext-Γ'-Γ'') te =
   let te' : Γ' ⊢ e ∶ τ
       te' = weaken*-preserve-ty Γ Γ' e τ ext-Γ-Γ' te in
   weaken*-preserve-ty Γ' Γ'' e τ ext-Γ'-Γ'' te'

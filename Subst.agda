@@ -37,7 +37,7 @@ data _[_/_]⇛_ : Term → Term → String → Term → Set where
 -- Substitution is total, which means that for any term `e`,  variable `x` and
 -- substitute `eₓ`, there exists a term `e'` that is a substitution of `x`
 -- by `eₓ` in `e`.
-subst-total : ∀ e x eₓ → ∃[ e' ] e [ eₓ / x ]⇛ e'
+subst-total : ∀ e x eₓ → ∃[ e' ] (e [ eₓ / x ]⇛ e')
 subst-total tm-true x eₓ = ⟨ tm-true , subst-true x eₓ ⟩
 subst-total tm-false x eₓ = ⟨ tm-false , subst-false x eₓ ⟩
 subst-total (tm-var y) x eₓ with x ≟ y

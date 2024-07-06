@@ -1,3 +1,5 @@
+open import Data.Product renaming (_,_ to ⟨_,_⟩)
+
 open import Ctx
 open import Eval
 open import Subst

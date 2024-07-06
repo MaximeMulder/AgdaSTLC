@@ -1,5 +1,5 @@
-open import Data.Product using (_×_; ∃-syntax) renaming (_,_ to ⟨_,_⟩)
 open import Data.Nat using (ℕ; suc)
+open import Data.Product using (_×_; ∃-syntax) renaming (_,_ to ⟨_,_⟩)
 open import Data.String using (String)
 open import Data.String.Properties using (_≟_)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
@@ -21,16 +21,29 @@ data Ctx : Set  where
   -- The context extension, usually abbreviated as "ext".
   _,_∶_ : Ctx → String → Type → Ctx
 
-data Length : ℕ → Ctx → Set where
-  length-zero : Length 0 ∅
-  length-suc : ∀ {Γ n} x τ
-    → Length n Γ
-    → Length (suc n) (Γ , x ∶ τ)
+-- The length of a context.
+data Length : Ctx → ℕ → Set where
+  length-zero : Length ∅ 0
+  length-suc : ∀ Γ n x τ
+    → Length Γ n
+    → Length (Γ , x ∶ τ) (suc n)
+
+length : ∀ Γ → ∃[ n ] Length Γ n
+length ∅ =
+  ⟨ 0 , length-zero ⟩
+length (Γ , x ∶ τ) with length Γ
+... | ⟨ n , length-Γ ⟩ =
+  ⟨ suc n , length-suc Γ n x τ length-Γ ⟩
 
 -- The context concatenation, usually abbreviated as "concat".
 _,_ : Ctx → Ctx → Ctx
 Γ , ∅ = Γ
 Γ , (Γ' , x ∶ τ) = (Γ , Γ') , x ∶ τ
+
+postulate
+  length-ext-concat : ∀ Γ₁ Γ₂ x τ n
+    → Length (Γ₁ , x ∶ τ , Γ₂) (suc n)
+    → Length (Γ₁ , Γ₂) n
 
 -- The empty context `∅` is a left identity of the context concatenation.
 -- The right identity is true by definition.
