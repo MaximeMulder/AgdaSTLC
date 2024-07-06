@@ -1,4 +1,5 @@
 open import Data.Product using (_×_; ∃-syntax) renaming (_,_ to ⟨_,_⟩)
+open import Data.Nat using (ℕ; suc)
 open import Data.String using (String)
 open import Data.String.Properties using (_≟_)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
@@ -19,6 +20,12 @@ data Ctx : Set  where
   ∅ : Ctx
   -- The context extension, usually abbreviated as "ext".
   _,_∶_ : Ctx → String → Type → Ctx
+
+data Length : ℕ → Ctx → Set where
+  length-zero : Length 0 ∅
+  length-suc : ∀ {Γ n} x τ
+    → Length n Γ
+    → Length (suc n) (Γ , x ∶ τ)
 
 -- The context concatenation, usually abbreviated as "concat".
 _,_ : Ctx → Ctx → Ctx
