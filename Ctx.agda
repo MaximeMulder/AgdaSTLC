@@ -104,11 +104,21 @@ in-concat-either-in-out Γ₁ (Γ₂ , x₂ ∶ τ₂) x τ (∈-i Γ x τ x₂ 
 ... | inj₁ ⟨ x-∈-Γ₁ , x-∉-Γ₂ ⟩ = inj₁ ⟨ x-∈-Γ₁ , ∉-i Γ₂ x x₂ τ₂ x-≢-x₂ x-∉-Γ₂ ⟩
 ... | inj₂ x-∈-Γ₂ = inj₂ (∈-i Γ₂ x τ x₂ τ₂ x-≢-x₂ x-∈-Γ₂)
 
--- TODO: Prove
-postulate
-  in-ex-concat : ∀ Γ x τ
-    → x ∶ τ ∈ Γ
-    → ∃[ Γ₁ ] ∃[ Γ₂ ] (Γ ≡ Γ₁ , x ∶ τ , Γ₂ × x ∉ Γ₁)
+-- If the variable `x` is in the context `Γ`, then there exists some contexts `Γ₁`
+-- and `Γ₂`, and a type `τ'` such that the extension of `Γ₁` with the assumption
+-- x ∶ τ'` concatenated with `Γ₂` is equal to `Γ`, and `x` is not in `Γ₁`.
+in-ex-concat : ∀ {Γ x τ}
+  → x ∶ τ ∈ Γ
+  → ∃[ Γ₁ ] ∃[ Γ₂ ] ∃[ τ' ] (Γ ≡ Γ₁ , x ∶ τ' , Γ₂ × x ∉ Γ₁)
+in-ex-concat (∈-b Γ x τ) with either-ex-in-out Γ x
+... | inj₂ x-∉-Γ =
+  ⟨ Γ , ⟨ ∅ , ⟨ τ , ⟨ refl , x-∉-Γ ⟩ ⟩ ⟩ ⟩
+... | inj₁ ⟨ _ , x-∈-Γ ⟩ with in-ex-concat x-∈-Γ
+... | ⟨ Γ₁ , ⟨ Γ₂ , ⟨ τ' , ⟨ Γ-≡-Γ₁₂ , x-∉-Γ₁ ⟩ ⟩ ⟩ ⟩ rewrite Γ-≡-Γ₁₂ =
+  ⟨ Γ₁ , ⟨ (Γ₂ , x ∶ τ) , ⟨ τ' , ⟨ refl , x-∉-Γ₁ ⟩ ⟩ ⟩ ⟩
+in-ex-concat (∈-i Γ x τ x' τ' x-≢-x' x-∈-Γ) with in-ex-concat x-∈-Γ
+... | ⟨ Γ₁ , ⟨ Γ₂ , ⟨ τ'' , ⟨ Γ-≡-Γ₁₂ , x-∉-Γ₁ ⟩ ⟩ ⟩ ⟩ rewrite Γ-≡-Γ₁₂ =
+  ⟨ Γ₁ , ⟨ (Γ₂ , x' ∶ τ') , ⟨ τ'' , ⟨ refl , x-∉-Γ₁ ⟩ ⟩ ⟩ ⟩
 
 -- If the assumption `x ∶ τ` is in the context `Γ₁`, and `x` is out of the
 -- context `Γ₂`, then `x ∶ τ` is in the concatenation of `Γ₁` and `Γ₂`.

@@ -53,12 +53,12 @@ weaken*-nil (Γ , x ∶ τ) with either-ex-in-out Γ x
   let weak-Γ-x : Weaken Γ (Γ , x ∶ τ)
       weak-Γ-x = weaken-∉ Γ ∅ x τ x-∉-Γ in
   weaken*-trans weak-∅-Γ (weaken*-base weak-Γ-x)
-... | inj₁ ⟨ τ' , x-∈-Γ ⟩ with in-ex-concat Γ x τ' x-∈-Γ
-... | ⟨ Γ₁ , ⟨ Γ₂ , ⟨ Γ₁₂-≡-Γ , x-∉-Γ₁ ⟩ ⟩ ⟩ rewrite Γ₁₂-≡-Γ =
+... | inj₁ ⟨ τ' , x-∈-Γ ⟩ with in-ex-concat x-∈-Γ
+... | ⟨ Γ₁ , ⟨ Γ₂ , ⟨ τ'' , ⟨ Γ₁₂-≡-Γ , x-∉-Γ₁ ⟩ ⟩ ⟩ ⟩ rewrite Γ₁₂-≡-Γ =
   let weak-∅-Γ : Weaken* ∅ (Γ₁ , (Γ₂ , x ∶ τ))
       weak-∅-Γ = weaken*-nil (Γ₁ , (Γ₂ , x ∶ τ)) in
-  let weak-Γ-x : Weaken* (Γ₁ , (Γ₂ , x ∶ τ)) ((Γ₁ , x ∶ τ') , (Γ₂ , x ∶ τ))
-      weak-Γ-x = weaken*-base (weaken-∉ Γ₁ (Γ₂ , x ∶ τ) x τ' x-∉-Γ₁) in
+  let weak-Γ-x : Weaken* (Γ₁ , (Γ₂ , x ∶ τ)) ((Γ₁ , x ∶ τ'') , (Γ₂ , x ∶ τ))
+      weak-Γ-x = weaken*-base (weaken-∉ Γ₁ (Γ₂ , x ∶ τ) x τ'' x-∉-Γ₁) in
   weaken*-trans weak-∅-Γ weak-Γ-x
 
 -- Preservation of inclusion under weakening, which means that if the context `Γ'`
