@@ -101,32 +101,32 @@ weaken-preserve-ty : ∀ Γ Γ' e τ
   → Weaken Γ Γ'
   → Γ ⊢ e ∶ τ
   → Γ' ⊢ e ∶ τ
-weaken-preserve-ty Γ Γ' _ _ _ (t-true Γ) = t-true Γ'
-weaken-preserve-ty Γ Γ' _ _ _  (t-false Γ) = t-false Γ'
-weaken-preserve-ty Γ Γ' _ _ w (t-var Γ x τ x-∈-Γ) =
+weaken-preserve-ty Γ Γ' _ _ _ (ty-true Γ) = ty-true Γ'
+weaken-preserve-ty Γ Γ' _ _ _  (ty-false Γ) = ty-false Γ'
+weaken-preserve-ty Γ Γ' _ _ w (ty-var Γ x τ x-∈-Γ) =
   let x-∈-Γ' : x ∶ τ ∈ Γ'
       x-∈-Γ' = weaken-preserve-in Γ Γ' x τ w x-∈-Γ in
-  t-var Γ' x τ x-∈-Γ'
-weaken-preserve-ty Γ Γ' _ τ w (t-if Γ τ e₁ e₂ e₃ te₁ te₂ te₃) =
-  let te₁' : Γ' ⊢ e₁ ∶ ty-bool
-      te₁' = weaken-preserve-ty Γ Γ' e₁ ty-bool w te₁ in
+  ty-var Γ' x τ x-∈-Γ'
+weaken-preserve-ty Γ Γ' _ τ w (ty-if Γ τ e₁ e₂ e₃ te₁ te₂ te₃) =
+  let te₁' : Γ' ⊢ e₁ ∶ t-bool
+      te₁' = weaken-preserve-ty Γ Γ' e₁ t-bool w te₁ in
   let te₂' : Γ' ⊢ e₂ ∶ τ
       te₂' = weaken-preserve-ty Γ Γ' e₂ τ w te₂ in
   let te₃' : Γ' ⊢ e₃ ∶ τ
       te₃' = weaken-preserve-ty Γ Γ' e₃ τ w te₃ in
-  t-if Γ' τ e₁ e₂ e₃ te₁' te₂' te₃'
-weaken-preserve-ty Γ Γ' _ _ w (t-abs Γ x e₂ τ₁ τ₂ te₂) =
+  ty-if Γ' τ e₁ e₂ e₃ te₁' te₂' te₃'
+weaken-preserve-ty Γ Γ' _ _ w (ty-abs Γ x e₂ τ₁ τ₂ te₂) =
   let w' : Weaken (Γ , x ∶ τ₁) (Γ' , x ∶ τ₁)
       w' = weaken-mono-ext Γ Γ' x τ₁ w in
   let te₂' : (Γ' , x ∶ τ₁) ⊢ e₂ ∶ τ₂
       te₂' = weaken-preserve-ty (Γ , x ∶ τ₁) (Γ' , x ∶ τ₁) e₂ τ₂ w' te₂ in
-  t-abs Γ' x e₂ τ₁ τ₂ te₂'
-weaken-preserve-ty Γ Γ' _ τ w (t-app Γ e₁ e₂ τ₁ τ te₁ te₂) =
-  let te₁' : Γ' ⊢ e₁ ∶ ty-abs τ₁ τ
-      te₁' = weaken-preserve-ty Γ Γ' e₁ (ty-abs τ₁ τ) w te₁ in
+  ty-abs Γ' x e₂ τ₁ τ₂ te₂'
+weaken-preserve-ty Γ Γ' _ τ w (ty-app Γ e₁ e₂ τ₁ τ te₁ te₂) =
+  let te₁' : Γ' ⊢ e₁ ∶ t-abs τ₁ τ
+      te₁' = weaken-preserve-ty Γ Γ' e₁ (t-abs τ₁ τ) w te₁ in
   let te₂' : Γ' ⊢ e₂ ∶ τ₁
       te₂' = weaken-preserve-ty Γ Γ' e₂ τ₁ w te₂ in
-  t-app Γ' e₁ e₂ τ₁ τ te₁' te₂'
+  ty-app Γ' e₁ e₂ τ₁ τ te₁' te₂'
 
 -- Preservation of typing under reflexive-transitive weakening.
 weaken*-preserve-ty : ∀ Γ Γ' e τ

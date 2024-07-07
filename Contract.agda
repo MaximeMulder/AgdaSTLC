@@ -58,29 +58,29 @@ contract-preserve-ty : ∀ Γ Γ' e τ
   → Contract Γ Γ'
   → Γ ⊢ e ∶ τ
   → Γ' ⊢ e ∶ τ
-contract-preserve-ty Γ Γ' _ _ _ (t-true Γ) = t-true Γ'
-contract-preserve-ty Γ Γ' _ _ _  (t-false Γ) = t-false Γ'
-contract-preserve-ty Γ Γ' _ _ c (t-var Γ x τ x-∈-Γ) =
+contract-preserve-ty Γ Γ' _ _ _ (ty-true Γ) = ty-true Γ'
+contract-preserve-ty Γ Γ' _ _ _  (ty-false Γ) = ty-false Γ'
+contract-preserve-ty Γ Γ' _ _ c (ty-var Γ x τ x-∈-Γ) =
   let x-∈-Γ' : x ∶ τ ∈ Γ'
       x-∈-Γ' = contract-preserve-in Γ Γ' x τ c x-∈-Γ in
-  t-var Γ' x τ x-∈-Γ'
-contract-preserve-ty Γ Γ' _ τ c (t-if Γ τ e₁ e₂ e₃ te₁ te₂ te₃) =
-  let te₁' : Γ' ⊢ e₁ ∶ ty-bool
-      te₁' = contract-preserve-ty Γ Γ' e₁ ty-bool c te₁ in
+  ty-var Γ' x τ x-∈-Γ'
+contract-preserve-ty Γ Γ' _ τ c (ty-if Γ τ e₁ e₂ e₃ te₁ te₂ te₃) =
+  let te₁' : Γ' ⊢ e₁ ∶ t-bool
+      te₁' = contract-preserve-ty Γ Γ' e₁ t-bool c te₁ in
   let te₂' : Γ' ⊢ e₂ ∶ τ
       te₂' = contract-preserve-ty Γ Γ' e₂ τ c te₂ in
   let te₃' : Γ' ⊢ e₃ ∶ τ
       te₃' = contract-preserve-ty Γ Γ' e₃ τ c te₃ in
-  t-if Γ' τ e₁ e₂ e₃ te₁' te₂' te₃'
-contract-preserve-ty Γ Γ' _ _ c (t-abs Γ x e₂ τ₁ τ₂ te₂) =
+  ty-if Γ' τ e₁ e₂ e₃ te₁' te₂' te₃'
+contract-preserve-ty Γ Γ' _ _ c (ty-abs Γ x e₂ τ₁ τ₂ te₂) =
   let c' : Contract (Γ , x ∶ τ₁) (Γ' , x ∶ τ₁)
       c' = contract-mono-ext Γ Γ' x τ₁ c in
   let te₂' : (Γ' , x ∶ τ₁) ⊢ e₂ ∶ τ₂
       te₂' = contract-preserve-ty (Γ , x ∶ τ₁) (Γ' , x ∶ τ₁) e₂ τ₂ c' te₂ in
-  t-abs Γ' x e₂ τ₁ τ₂ te₂'
-contract-preserve-ty Γ Γ' _ τ c (t-app Γ e₁ e₂ τ₁ τ te₁ te₂) =
-  let te₁' : Γ' ⊢ e₁ ∶ ty-abs τ₁ τ
-      te₁' = contract-preserve-ty Γ Γ' e₁ (ty-abs τ₁ τ) c te₁ in
+  ty-abs Γ' x e₂ τ₁ τ₂ te₂'
+contract-preserve-ty Γ Γ' _ τ c (ty-app Γ e₁ e₂ τ₁ τ te₁ te₂) =
+  let te₁' : Γ' ⊢ e₁ ∶ t-abs τ₁ τ
+      te₁' = contract-preserve-ty Γ Γ' e₁ (t-abs τ₁ τ) c te₁ in
   let te₂' : Γ' ⊢ e₂ ∶ τ₁
       te₂' = contract-preserve-ty Γ Γ' e₂ τ₁ c te₂ in
-  t-app Γ' e₁ e₂ τ₁ τ te₁' te₂'
+  ty-app Γ' e₁ e₂ τ₁ τ te₁' te₂'
