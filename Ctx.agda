@@ -1,4 +1,5 @@
-open import Data.Nat using (ℕ; suc)
+open import Data.Nat using (ℕ; suc; _+_)
+open import Data.Nat.Properties using (+-identityʳ; +-suc)
 open import Data.Product using (_×_; ∃-syntax) renaming (_,_ to ⟨_,_⟩)
 open import Data.String using (String)
 open import Data.String.Properties using (_≟_)
@@ -40,10 +41,14 @@ _,_ : Ctx → Ctx → Ctx
 Γ , ∅ = Γ
 Γ , (Γ' , x ∶ τ) = (Γ , Γ') , x ∶ τ
 
-postulate
-  length-ext-concat : ∀ Γ₁ Γ₂ x τ n
-    → Length (Γ₁ , x ∶ τ , Γ₂) (suc n)
-    → Length (Γ₁ , Γ₂) n
+length-concat : ∀ Γ₁ Γ₂ n₁ n₂
+  → Length Γ₁ n₁
+  → Length Γ₂ n₂
+  → Length (Γ₁ , Γ₂) (n₁ + n₂)
+length-concat Γ₁ ∅ n₁ 0 length-Γ₁ length-zero rewrite +-identityʳ n₁ =
+  length-Γ₁
+length-concat Γ₁ (Γ₂ , x ∶ τ) n₁ (suc n₂) length-Γ₁ (length-suc Γ₂ n₂ x τ length-Γ₂) rewrite +-suc n₁ n₂ =
+  length-suc (Γ₁ , Γ₂) (n₁ + n₂) x τ (length-concat Γ₁ Γ₂ n₁ n₂ length-Γ₁ length-Γ₂)
 
 -- The empty context `∅` is a left identity of the context concatenation.
 -- The right identity is true by definition.
@@ -66,6 +71,17 @@ concat-comm Γ₁ ∅ Γ₃ rewrite concat-ident-l Γ₃ =
   refl
 concat-comm Γ₁ (Γ₂ , x ∶ τ) Γ₃ rewrite concat-comm-ext (Γ₁ , Γ₂) Γ₃ x τ  | concat-comm Γ₁ Γ₂ (∅ , x ∶ τ , Γ₃) | sym (concat-comm-ext Γ₂ Γ₃ x τ) =
   refl
+
+length-ext-concat : ∀ Γ₁ Γ₂ x τ n
+  → Length (Γ₁ , x ∶ τ , Γ₂) (suc n)
+  → Length (Γ₁ , Γ₂) n
+length-ext-concat Γ₁ ∅ x τ n (length-suc Γ₁ n x τ length-Γ) =
+  length-Γ
+length-ext-concat Γ₁ (Γ₂ , x₂ ∶ τ₂) x τ (suc n) (length-suc _ (suc n) x₂ τ₂ length-Γ) =
+  let length-Γ' : Length (Γ₁ , Γ₂) n
+      length-Γ' = length-ext-concat Γ₁ Γ₂ x τ n length-Γ in
+  length-suc (Γ₁ , Γ₂) n x₂ τ₂ length-Γ'
+length-ext-concat Γ₁ (∅ , x₂ ∶ τ₂) x τ 0 (length-suc (Γ₁ , x ∶ τ) 0 x₂ τ₂ ())
 
 -- The inclusion of an assumption in a context, usually abbreviated as "in".
 data _∶_∈_ : String → Type → Ctx → Set where
