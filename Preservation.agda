@@ -1,5 +1,6 @@
 open import Ctx
 open import Eval
+open import Subst
 open import Syntax
 open import Typing
 
@@ -12,7 +13,7 @@ preserve (t-if ∅ τ tm-true e₂ e₃ _ te₂ _) (s-if-true e₂ e₃) =
 preserve (t-if ∅ τ tm-false e₂ e₃ _ _ te₃) (s-if-false e₂ e₃) =
   te₃
 preserve (t-if ∅ τ e₁ e₂ e₃ te₁ te₂ te₃) (s-if-step e₁ e₁' e₂ e₃ se₁) =
-  let te₁' : ∅ ⊢ e₁' ∶ ty-bool 
+  let te₁' : ∅ ⊢ e₁' ∶ ty-bool
       te₁' = preserve te₁ se₁ in
   t-if ∅ τ e₁' e₂ e₃ te₁' te₂ te₃
 preserve (t-app ∅ (tm-abs x τ₁ e₁) e₂ τ₁ τ₂ (t-abs ∅ x e₁ τ₁ τ₂ te₁) te₂) (s-app x τ₁ e₁ e₁' e₂ se₁) =

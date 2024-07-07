@@ -6,6 +6,8 @@ open import Relation.Nullary using (yes; no)
 open import Relation.Nullary.Negation using (contradiction)
 
 open import Ctx
+open import Syntax
+open import Typing
 
 -- Context contraction, usually abbreviated as "contract", which is the deletion
 -- of an assumption of a context that does not invalidate any assumption of this
@@ -48,3 +50,37 @@ contract-preserve-in Γ Γ' x τ (contract Γ₁ Γ₂ x' τ' τ₂ x'-∈-Γ₂
   in-out-in-concat Γ₁ Γ₂ x τ x-∈-Γ₁ x-∉-Γ₂
 contract-preserve-in Γ  Γ' x τ (contract Γ₁ Γ₂ x' τ' τ₂ x'-∈-Γ₂) x-∈-Γ | inj₂ x-∈-Γ₂ =
   in-in-concat Γ₁ Γ₂ x τ x-∈-Γ₂
+
+-- Preservation of typing under contraction, which means that if the context `Γ'` is
+-- a contraction of the context `Γ`, and that the term `e` has type `τ` under `Γ`,
+-- then `e` also has type `τ` under `Γ'`.
+contract-preserve-ty : ∀ Γ Γ' e τ
+  → Contract Γ Γ'
+  → Γ ⊢ e ∶ τ
+  → Γ' ⊢ e ∶ τ
+contract-preserve-ty Γ Γ' _ _ _ (t-true Γ) = t-true Γ'
+contract-preserve-ty Γ Γ' _ _ _  (t-false Γ) = t-false Γ'
+contract-preserve-ty Γ Γ' _ _ c (t-var Γ x τ x-∈-Γ) =
+  let x-∈-Γ' : x ∶ τ ∈ Γ'
+      x-∈-Γ' = contract-preserve-in Γ Γ' x τ c x-∈-Γ in
+  t-var Γ' x τ x-∈-Γ'
+contract-preserve-ty Γ Γ' _ τ c (t-if Γ τ e₁ e₂ e₃ te₁ te₂ te₃) =
+  let te₁' : Γ' ⊢ e₁ ∶ ty-bool
+      te₁' = contract-preserve-ty Γ Γ' e₁ ty-bool c te₁ in
+  let te₂' : Γ' ⊢ e₂ ∶ τ
+      te₂' = contract-preserve-ty Γ Γ' e₂ τ c te₂ in
+  let te₃' : Γ' ⊢ e₃ ∶ τ
+      te₃' = contract-preserve-ty Γ Γ' e₃ τ c te₃ in
+  t-if Γ' τ e₁ e₂ e₃ te₁' te₂' te₃'
+contract-preserve-ty Γ Γ' _ _ c (t-abs Γ x e₂ τ₁ τ₂ te₂) =
+  let c' : Contract (Γ , x ∶ τ₁) (Γ' , x ∶ τ₁)
+      c' = contract-mono-ext Γ Γ' x τ₁ c in
+  let te₂' : (Γ' , x ∶ τ₁) ⊢ e₂ ∶ τ₂
+      te₂' = contract-preserve-ty (Γ , x ∶ τ₁) (Γ' , x ∶ τ₁) e₂ τ₂ c' te₂ in
+  t-abs Γ' x e₂ τ₁ τ₂ te₂'
+contract-preserve-ty Γ Γ' _ τ c (t-app Γ e₁ e₂ τ₁ τ te₁ te₂) =
+  let te₁' : Γ' ⊢ e₁ ∶ ty-abs τ₁ τ
+      te₁' = contract-preserve-ty Γ Γ' e₁ (ty-abs τ₁ τ) c te₁ in
+  let te₂' : Γ' ⊢ e₂ ∶ τ₁
+      te₂' = contract-preserve-ty Γ Γ' e₂ τ₁ c te₂ in
+  t-app Γ' e₁ e₂ τ₁ τ te₁' te₂'

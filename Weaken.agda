@@ -6,6 +6,8 @@ open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; sym; ≢-
 open import Relation.Nullary using (yes; no)
 
 open import Ctx
+open import Syntax
+open import Typing
 
 -- Context weakening, usually abbreviated as "weaken", which is the insertion
 -- of an assumption in a context that does not invalidate any assumption of this
@@ -56,13 +58,14 @@ weaken*-nil-length (length-suc Γ n x τ length-Γ) with either-ex-in-out Γ x
 ... | inj₁ ⟨ _ , x-∈-Γ ⟩ with in-ex-concat x-∈-Γ
 ... | ⟨ Γ₁ , ⟨ Γ₂ , ⟨ τ' , ⟨ Γ₁₂-≡-Γ , x-∉-Γ₁ ⟩ ⟩ ⟩ ⟩ rewrite Γ₁₂-≡-Γ =
   let length-Γ' : Length (Γ₁ , (Γ₂ , x ∶ τ)) n
-      length-Γ' = length-ext-concat Γ₁ (Γ₂ , x ∶ τ) x τ' n (length-suc (Γ₁ , x ∶ τ' , Γ₂) n x τ length-Γ) in
+      length-Γ' = length-del Γ₁ (Γ₂ , x ∶ τ) x τ' n (length-suc (Γ₁ , x ∶ τ' , Γ₂) n x τ length-Γ) in
   let weak-∅-Γ : Weaken* ∅ (Γ₁ , (Γ₂ , x ∶ τ))
       weak-∅-Γ = weaken*-nil-length length-Γ' in
   let weak-Γ-x : Weaken* (Γ₁ , (Γ₂ , x ∶ τ)) ((Γ₁ , x ∶ τ') , (Γ₂ , x ∶ τ))
       weak-Γ-x = weaken*-base (weaken-∉ Γ₁ (Γ₂ , x ∶ τ) x τ' x-∉-Γ₁) in
   weaken*-trans weak-∅-Γ weak-Γ-x
 
+-- For all context `Γ`, `Γ` is a reflexive-transitive weakening of the empty context `∅`.
 weaken*-nil : ∀ Γ → Weaken* ∅ Γ
 weaken*-nil Γ with length Γ
 ... | ⟨ _ , length-Γ ⟩ = weaken*-nil-length length-Γ
@@ -90,3 +93,51 @@ weaken-preserve-in Γ Γ' x τ (weaken-∉ Γ₁ Γ₂ x' τ' x'-∉-Γ₁) x-�
       x-∈-Γ' = ∈-i Γ₁ x τ x' τ' x-≢-x' x-∈-Γ₁ in
   in-out-in-concat (Γ₁ , x' ∶ τ') Γ₂ x τ x-∈-Γ' x-∉-Γ₂
 ... | inj₂ x-∈-Γ₂ = in-in-concat (Γ₁ , x' ∶ τ') Γ₂ x τ x-∈-Γ₂
+
+-- Preservation of typing under weakening, which means that if the context `Γ'`
+-- is a weakening of the context `Γ`, and that the term `e` has type `τ` under `Γ`,
+-- then `e` also has type `τ` under `Γ'`.
+weaken-preserve-ty : ∀ Γ Γ' e τ
+  → Weaken Γ Γ'
+  → Γ ⊢ e ∶ τ
+  → Γ' ⊢ e ∶ τ
+weaken-preserve-ty Γ Γ' _ _ _ (t-true Γ) = t-true Γ'
+weaken-preserve-ty Γ Γ' _ _ _  (t-false Γ) = t-false Γ'
+weaken-preserve-ty Γ Γ' _ _ w (t-var Γ x τ x-∈-Γ) =
+  let x-∈-Γ' : x ∶ τ ∈ Γ'
+      x-∈-Γ' = weaken-preserve-in Γ Γ' x τ w x-∈-Γ in
+  t-var Γ' x τ x-∈-Γ'
+weaken-preserve-ty Γ Γ' _ τ w (t-if Γ τ e₁ e₂ e₃ te₁ te₂ te₃) =
+  let te₁' : Γ' ⊢ e₁ ∶ ty-bool
+      te₁' = weaken-preserve-ty Γ Γ' e₁ ty-bool w te₁ in
+  let te₂' : Γ' ⊢ e₂ ∶ τ
+      te₂' = weaken-preserve-ty Γ Γ' e₂ τ w te₂ in
+  let te₃' : Γ' ⊢ e₃ ∶ τ
+      te₃' = weaken-preserve-ty Γ Γ' e₃ τ w te₃ in
+  t-if Γ' τ e₁ e₂ e₃ te₁' te₂' te₃'
+weaken-preserve-ty Γ Γ' _ _ w (t-abs Γ x e₂ τ₁ τ₂ te₂) =
+  let w' : Weaken (Γ , x ∶ τ₁) (Γ' , x ∶ τ₁)
+      w' = weaken-mono-ext Γ Γ' x τ₁ w in
+  let te₂' : (Γ' , x ∶ τ₁) ⊢ e₂ ∶ τ₂
+      te₂' = weaken-preserve-ty (Γ , x ∶ τ₁) (Γ' , x ∶ τ₁) e₂ τ₂ w' te₂ in
+  t-abs Γ' x e₂ τ₁ τ₂ te₂'
+weaken-preserve-ty Γ Γ' _ τ w (t-app Γ e₁ e₂ τ₁ τ te₁ te₂) =
+  let te₁' : Γ' ⊢ e₁ ∶ ty-abs τ₁ τ
+      te₁' = weaken-preserve-ty Γ Γ' e₁ (ty-abs τ₁ τ) w te₁ in
+  let te₂' : Γ' ⊢ e₂ ∶ τ₁
+      te₂' = weaken-preserve-ty Γ Γ' e₂ τ₁ w te₂ in
+  t-app Γ' e₁ e₂ τ₁ τ te₁' te₂'
+
+-- Preservation of typing under reflexive-transitive weakening.
+weaken*-preserve-ty : ∀ Γ Γ' e τ
+  → Weaken* Γ Γ'
+  → Γ ⊢ e ∶ τ
+  → Γ' ⊢ e ∶ τ
+weaken*-preserve-ty Γ Γ e τ (weaken*-refl Γ) te =
+  te
+weaken*-preserve-ty Γ Γ' e τ (weaken*-base e-Γ-Γ') te =
+  weaken-preserve-ty Γ Γ' e τ e-Γ-Γ' te
+weaken*-preserve-ty Γ Γ'' e τ (weaken*-trans {Γ} {Γ'} {Γ''} ext-Γ-Γ' ext-Γ'-Γ'') te =
+  let te' : Γ' ⊢ e ∶ τ
+      te' = weaken*-preserve-ty Γ Γ' e τ ext-Γ-Γ' te in
+  weaken*-preserve-ty Γ' Γ'' e τ ext-Γ'-Γ'' te'

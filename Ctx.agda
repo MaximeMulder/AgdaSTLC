@@ -22,33 +22,10 @@ data Ctx : Set  where
   -- The context extension, usually abbreviated as "ext".
   _,_∶_ : Ctx → String → Type → Ctx
 
--- The length of a context.
-data Length : Ctx → ℕ → Set where
-  length-zero : Length ∅ 0
-  length-suc : ∀ Γ n x τ
-    → Length Γ n
-    → Length (Γ , x ∶ τ) (suc n)
-
-length : ∀ Γ → ∃[ n ] Length Γ n
-length ∅ =
-  ⟨ 0 , length-zero ⟩
-length (Γ , x ∶ τ) with length Γ
-... | ⟨ n , length-Γ ⟩ =
-  ⟨ suc n , length-suc Γ n x τ length-Γ ⟩
-
 -- The context concatenation, usually abbreviated as "concat".
 _,_ : Ctx → Ctx → Ctx
 Γ , ∅ = Γ
 Γ , (Γ' , x ∶ τ) = (Γ , Γ') , x ∶ τ
-
-length-concat : ∀ Γ₁ Γ₂ n₁ n₂
-  → Length Γ₁ n₁
-  → Length Γ₂ n₂
-  → Length (Γ₁ , Γ₂) (n₁ + n₂)
-length-concat Γ₁ ∅ n₁ 0 length-Γ₁ length-zero rewrite +-identityʳ n₁ =
-  length-Γ₁
-length-concat Γ₁ (Γ₂ , x ∶ τ) n₁ (suc n₂) length-Γ₁ (length-suc Γ₂ n₂ x τ length-Γ₂) rewrite +-suc n₁ n₂ =
-  length-suc (Γ₁ , Γ₂) (n₁ + n₂) x τ (length-concat Γ₁ Γ₂ n₁ n₂ length-Γ₁ length-Γ₂)
 
 -- The empty context `∅` is a left identity of the context concatenation.
 -- The right identity is true by definition.
@@ -71,17 +48,6 @@ concat-comm Γ₁ ∅ Γ₃ rewrite concat-ident-l Γ₃ =
   refl
 concat-comm Γ₁ (Γ₂ , x ∶ τ) Γ₃ rewrite concat-comm-ext (Γ₁ , Γ₂) Γ₃ x τ  | concat-comm Γ₁ Γ₂ (∅ , x ∶ τ , Γ₃) | sym (concat-comm-ext Γ₂ Γ₃ x τ) =
   refl
-
-length-ext-concat : ∀ Γ₁ Γ₂ x τ n
-  → Length (Γ₁ , x ∶ τ , Γ₂) (suc n)
-  → Length (Γ₁ , Γ₂) n
-length-ext-concat Γ₁ ∅ x τ n (length-suc Γ₁ n x τ length-Γ) =
-  length-Γ
-length-ext-concat Γ₁ (Γ₂ , x₂ ∶ τ₂) x τ (suc n) (length-suc _ (suc n) x₂ τ₂ length-Γ) =
-  let length-Γ' : Length (Γ₁ , Γ₂) n
-      length-Γ' = length-ext-concat Γ₁ Γ₂ x τ n length-Γ in
-  length-suc (Γ₁ , Γ₂) n x₂ τ₂ length-Γ'
-length-ext-concat Γ₁ (∅ , x₂ ∶ τ₂) x τ 0 (length-suc (Γ₁ , x ∶ τ) 0 x₂ τ₂ ())
 
 -- The inclusion of an assumption in a context, usually abbreviated as "in".
 data _∶_∈_ : String → Type → Ctx → Set where
@@ -230,3 +196,41 @@ in-unique (Γ , x ∶ τ) x τ₁ τ₂ (∈-b Γ x τ₁) (∈-i Γ x τ₂ x' 
   contradiction refl x-≢-x
 in-unique (Γ , x ∶ τ) x τ₁ τ₂ (∈-i Γ x τ₁ x' τ' x-≢-x _) (∈-b Γ x τ₂) =
   contradiction refl x-≢-x
+
+-- The context length, which can notably be used as an induction variable.
+data Length : Ctx → ℕ → Set where
+  length-zero : Length ∅ 0
+  length-suc : ∀ Γ n x τ
+    → Length Γ n
+    → Length (Γ , x ∶ τ) (suc n)
+
+-- For all context `Γ`, there exists a natural number `n` that is the length
+-- of `Γ`.
+length : ∀ Γ → ∃[ n ] Length Γ n
+length ∅ =
+  ⟨ 0 , length-zero ⟩
+length (Γ , x ∶ τ) with length Γ
+... | ⟨ n , length-Γ ⟩ =
+  ⟨ suc n , length-suc Γ n x τ length-Γ ⟩
+
+-- Addition of length under concatenation.
+length-concat : ∀ Γ₁ Γ₂ n₁ n₂
+  → Length Γ₁ n₁
+  → Length Γ₂ n₂
+  → Length (Γ₁ , Γ₂) (n₁ + n₂)
+length-concat Γ₁ ∅ n₁ 0 length-Γ₁ length-zero rewrite +-identityʳ n₁ =
+  length-Γ₁
+length-concat Γ₁ (Γ₂ , x₂ ∶ τ₂) n₁ (suc n₂) length-Γ₁ (length-suc Γ₂ n₂ x τ length-Γ₂) rewrite +-suc n₁ n₂ =
+  length-suc (Γ₁ , Γ₂) (n₁ + n₂) x τ (length-concat Γ₁ Γ₂ n₁ n₂ length-Γ₁ length-Γ₂)
+
+-- Decrement of length under deletion.
+length-del : ∀ Γ₁ Γ₂ x τ n
+  → Length (Γ₁ , x ∶ τ , Γ₂) (suc n)
+  → Length (Γ₁ , Γ₂) n
+length-del Γ₁ ∅ x τ n (length-suc Γ₁ n x τ length-Γ) =
+  length-Γ
+length-del Γ₁ (Γ₂ , x₂ ∶ τ₂) x τ (suc n) (length-suc _ (suc n) x₂ τ₂ length-Γ) =
+  let length-Γ' : Length (Γ₁ , Γ₂) n
+      length-Γ' = length-del Γ₁ Γ₂ x τ n length-Γ in
+  length-suc (Γ₁ , Γ₂) n x₂ τ₂ length-Γ'
+length-del Γ₁ (∅ , x₂ ∶ τ₂) x τ 0 (length-suc (Γ₁ , x ∶ τ) 0 x₂ τ₂ ())
