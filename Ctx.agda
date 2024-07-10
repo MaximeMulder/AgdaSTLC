@@ -69,15 +69,15 @@ data _∉_ : String → Ctx → Set where
 
 -- If a variable `x` is in the context `Γ`, and a variable `y` is not in `Γ`,
 -- then `x` and `y` are distinct.
-in-out-distinct : ∀ Γ x y τ
+in-out-distinct : ∀ {Γ x y τ}
   → x ∶ τ ∈ Γ
   → y ∉ Γ
   → x ≢ y
-in-out-distinct ∅ x y τ ()
-in-out-distinct (Γ , x ∶ τ) x y τ (∈-b Γ x τ) (∉-i Γ y x τ ≢-yx _) =
+in-out-distinct {Γ = ∅} ()
+in-out-distinct (∈-b Γ x τ) (∉-i Γ y x τ ≢-yx _) =
   ≢-sym ≢-yx
-in-out-distinct (Γ , x' ∶ τ') x y τ (∈-i Γ x τ x' τ' _ ∈-x-Γ) (∉-i Γ y x' τ' _ ∉-y-Γ) =
-  in-out-distinct Γ x y τ ∈-x-Γ ∉-y-Γ
+in-out-distinct (∈-i Γ x τ x' τ' _ ∈-x-Γ) (∉-i Γ y x' τ' _ ∉-y-Γ) =
+  in-out-distinct ∈-x-Γ ∉-y-Γ
 
 -- For all context `Γ` and variable `x`, either there exists a type `τ` such that the
 -- assumption `x ∶ τ` is in `Γ`, or `x` is not in `Γ`.
@@ -103,8 +103,10 @@ in-concat-either-in-out Γ₁ ∅ x τ x-∈-Γ₁ =
 in-concat-either-in-out Γ₁ (Γ₂ , x₂ ∶ τ₂) x τ (∈-b Γ x τ) =
   inj₂ (∈-b Γ₂ x τ)
 in-concat-either-in-out Γ₁ (Γ₂ , x₂ ∶ τ₂) x τ (∈-i Γ x τ x₂ τ₂ x-≢-x₂ x-∈-Γ) with in-concat-either-in-out Γ₁ Γ₂ x τ x-∈-Γ
-... | inj₁ ⟨ x-∈-Γ₁ , x-∉-Γ₂ ⟩ = inj₁ ⟨ x-∈-Γ₁ , ∉-i Γ₂ x x₂ τ₂ x-≢-x₂ x-∉-Γ₂ ⟩
-... | inj₂ x-∈-Γ₂ = inj₂ (∈-i Γ₂ x τ x₂ τ₂ x-≢-x₂ x-∈-Γ₂)
+... | inj₁ ⟨ x-∈-Γ₁ , x-∉-Γ₂ ⟩ =
+  inj₁ ⟨ x-∈-Γ₁ , ∉-i Γ₂ x x₂ τ₂ x-≢-x₂ x-∉-Γ₂ ⟩
+... | inj₂ x-∈-Γ₂ =
+  inj₂ (∈-i Γ₂ x τ x₂ τ₂ x-≢-x₂ x-∈-Γ₂)
 
 -- If the variable `x` is in the context `Γ`, then there exists some contexts `Γ₁`
 -- and `Γ₂`, and a type `τ'` such that the extension of `Γ₁` with the assumption
@@ -124,51 +126,54 @@ in-ex-concat (∈-i Γ x τ x' τ' x-≢-x' x-∈-Γ) with in-ex-concat x-∈-Γ
 
 -- If the assumption `x ∶ τ` is in the context `Γ₁`, and `x` is out of the
 -- context `Γ₂`, then `x ∶ τ` is in the concatenation of `Γ₁` and `Γ₂`.
-in-out-in-concat : ∀ Γ₁ Γ₂ x τ
+in-out-in-concat : ∀ {Γ₁ Γ₂ x τ}
   → x ∶ τ ∈ Γ₁
   → x ∉ Γ₂
   → x ∶ τ ∈ Γ₁ , Γ₂
-in-out-in-concat Γ₁ ∅ x τ x-∈-Γ₁ x-∉-Γ₂ = x-∈-Γ₁
-in-out-in-concat Γ₁ (Γ₂ , x₂ ∶ τ₂) x τ x-∈-Γ₁ (∉-i Γ₂ x x₂ τ₂ x-≢-x₂ x-∉-Γ₂) =
+in-out-in-concat {Γ₂ = ∅} x-∈-Γ₁ x-∉-Γ₂ =
+  x-∈-Γ₁
+in-out-in-concat {Γ₁} {τ = τ} x-∈-Γ₁ (∉-i Γ₂ x x₂ τ₂ x-≢-x₂ x-∉-Γ₂) =
   let x-∈-Γ' : x ∶ τ ∈ (Γ₁ , Γ₂)
-      x-∈-Γ' = in-out-in-concat Γ₁ Γ₂ x τ x-∈-Γ₁ x-∉-Γ₂ in
+      x-∈-Γ' = in-out-in-concat x-∈-Γ₁ x-∉-Γ₂ in
   ∈-i (Γ₁ , Γ₂) x τ x₂ τ₂ x-≢-x₂ x-∈-Γ'
 
 -- If the assumption `x ∶ τ` is in the context `Γ`, then `x ∶ τ` is in the
 -- concatenation of the extension of the empty context `∅` with the assumption
 -- `x' ∶ τ'` and `Γ`.
-in-in-nil-ext-concat : ∀ Γ x τ x' τ'
+in-in-nil-ext-concat : ∀ {Γ x τ} x' τ'
   → x ∶ τ ∈ Γ
   → x ∶ τ ∈ ∅ , x' ∶ τ' , Γ
-in-in-nil-ext-concat (Γ , x ∶ τ) x τ x' τ' (∈-b Γ x τ) =
+in-in-nil-ext-concat x' τ' (∈-b Γ x τ) =
   ∈-b (∅ , x' ∶ τ' , Γ) x τ
-in-in-nil-ext-concat (Γ , x'' ∶ τ'') x τ x' τ' (∈-i Γ x τ x'' τ'' x-≢-x'' x-∈-Γ) =
+in-in-nil-ext-concat x' τ' (∈-i Γ x τ x'' τ'' x-≢-x'' x-∈-Γ) =
   let x-∈-Γ' : x ∶ τ ∈ (∅ , x' ∶ τ' , Γ)
-      x-∈-Γ' = in-in-nil-ext-concat Γ x τ x' τ' x-∈-Γ in
+      x-∈-Γ' = in-in-nil-ext-concat x' τ' x-∈-Γ in
   ∈-i (∅ , x' ∶ τ' , Γ) x τ x'' τ'' x-≢-x'' x-∈-Γ'
 
 -- If the assumption `x ∶ τ` is in the context `Γ₂`, then `x ∶ τ` is in the
 -- concatenation of the context `Γ₁` and `Γ₂`.
-in-in-concat : ∀ Γ₁ Γ₂ x τ
+in-in-concat : ∀ Γ₁ {Γ₂ x τ}
   → x ∶ τ ∈ Γ₂
   → x ∶ τ ∈ Γ₁ , Γ₂
-in-in-concat ∅ Γ₂ x τ (∈-b Γ₂' x τ) rewrite concat-ident-l Γ₂' =
+in-in-concat ∅ (∈-b Γ₂' x τ) rewrite concat-ident-l Γ₂' =
   ∈-b Γ₂' x τ
-in-in-concat ∅ (Γ₂ , x₂ ∶ τ₂) x τ (∈-i Γ₂ x τ x₂ τ₂ x-≢-x₂ x-∈-Γ₂) rewrite concat-ident-l Γ₂ =
+in-in-concat ∅ (∈-i Γ₂ x τ x₂ τ₂ x-≢-x₂ x-∈-Γ₂) rewrite concat-ident-l Γ₂ =
   ∈-i Γ₂ x τ x₂ τ₂ x-≢-x₂ x-∈-Γ₂
-in-in-concat (Γ₁ , x₁ ∶ τ₁) Γ₂ x τ x-∈-Γ₂ rewrite concat-comm-ext Γ₁ Γ₂ x₁ τ₁ =
+in-in-concat (Γ₁ , x₁ ∶ τ₁) {Γ₂} {x} {τ} x-∈-Γ₂ rewrite concat-comm-ext Γ₁ Γ₂ x₁ τ₁ =
   let x-∈-Γ₂' : x ∶ τ ∈ (∅ , x₁ ∶ τ₁ , Γ₂)
-      x-∈-Γ₂' = in-in-nil-ext-concat Γ₂ x τ x₁ τ₁ x-∈-Γ₂ in
-  in-in-concat Γ₁ (∅ , x₁ ∶ τ₁ , Γ₂) x τ x-∈-Γ₂'
+      x-∈-Γ₂' = in-in-nil-ext-concat x₁ τ₁ x-∈-Γ₂ in
+  in-in-concat Γ₁ x-∈-Γ₂'
 
 -- If the assumption `x ∶ τ` is in the extension of the context `Γ` with the
 -- assumption `x' ∶ τ'`, and `x` is distinct from `x'`, then `x ∶ τ` is in `Γ`.
-in-ext-distinct-in : ∀ Γ x τ x' τ'
+in-ext-distinct-in : ∀ {Γ x τ x' τ'}
   → x ≢ x'
   → x ∶ τ ∈ Γ , x' ∶ τ'
   → x ∶ τ ∈ Γ
-in-ext-distinct-in Γ x τ x τ x-≢-x (∈-b Γ x τ) = contradiction refl x-≢-x
-in-ext-distinct-in Γ x τ x' τ' _ (∈-i Γ x τ x' τ' _ x-∈-Γ) = x-∈-Γ
+in-ext-distinct-in x-≢-x (∈-b Γ x τ) =
+  contradiction refl x-≢-x
+in-ext-distinct-in _ (∈-i Γ x τ x' τ' _ x-∈-Γ) =
+  x-∈-Γ
 
 -- If the assumption `x ∶ τ` is in the concatenation of the contexts `Γ₁` and `Γ₂`,
 -- and `x` is not in `Γ₂`, then `x ∶ τ` is in `Γ₁`.
@@ -179,22 +184,22 @@ in-concat-out-in : ∀ Γ₁ Γ₂ x τ
 in-concat-out-in Γ₁ ∅ x τ x-∈-Γ (∉-b x) = x-∈-Γ
 in-concat-out-in Γ₁ (Γ₂ , x₂ ∶ τ₂) x τ x-∈-Γ (∉-i Γ₂ x x₂ τ₂ x-≢-x₂ x-∉-Γ₂) =
   let x-∈-Γ' : x ∶ τ ∈ (Γ₁ , Γ₂)
-      x-∈-Γ' = in-ext-distinct-in (Γ₁ , Γ₂) x τ x₂ τ₂ x-≢-x₂ x-∈-Γ in
+      x-∈-Γ' = in-ext-distinct-in x-≢-x₂ x-∈-Γ in
   in-concat-out-in Γ₁ Γ₂ x τ x-∈-Γ' x-∉-Γ₂
 
 -- Uniqueness of type under inclusion, which means that if the entries `x ∶ τ₁`
 -- and `x ∶ τ₂` are in the context `Γ`, then `τ₁` is equivalent to `τ₂`.
-in-unique : ∀ Γ x τ₁ τ₂
+in-unique : ∀ {Γ x τ₁ τ₂}
   → x ∶ τ₁ ∈ Γ
   → x ∶ τ₂ ∈ Γ
   → τ₁ ≡ τ₂
-in-unique (Γ , x ∶ τ) x τ₁ τ₂ (∈-b Γ x τ₁) (∈-b Γ x τ₂) =
+in-unique (∈-b Γ x τ₁) (∈-b Γ x τ₂) =
   refl
-in-unique (Γ , x' ∶ τ') x τ₁ τ₂ (∈-i Γ x τ₁ x' τ' _ x-∈-Γ₁) (∈-i Γ x τ₂ x' τ' _ x-∈-Γ₂) =
-  in-unique Γ x τ₁ τ₂ x-∈-Γ₁ x-∈-Γ₂
-in-unique (Γ , x ∶ τ) x τ₁ τ₂ (∈-b Γ x τ₁) (∈-i Γ x τ₂ x' τ' x-≢-x _) =
+in-unique (∈-i Γ x τ₁ x' τ' _ x-∈-Γ₁) (∈-i Γ x τ₂ x' τ' _ x-∈-Γ₂) =
+  in-unique x-∈-Γ₁ x-∈-Γ₂
+in-unique (∈-b Γ x τ₁) (∈-i Γ x τ₂ x' τ' x-≢-x _) =
   contradiction refl x-≢-x
-in-unique (Γ , x ∶ τ) x τ₁ τ₂ (∈-i Γ x τ₁ x' τ' x-≢-x _) (∈-b Γ x τ₂) =
+in-unique (∈-i Γ x τ₁ x' τ' x-≢-x _) (∈-b Γ x τ₂) =
   contradiction refl x-≢-x
 
 -- The context length, which can notably be used as an induction variable.
@@ -214,14 +219,14 @@ length (Γ , x ∶ τ) with length Γ
   ⟨ suc n , length-suc Γ n x τ length-Γ ⟩
 
 -- Addition of length under concatenation.
-length-concat : ∀ Γ₁ Γ₂ n₁ n₂
+length-concat : ∀ {Γ₁ Γ₂ n₁ n₂}
   → Length Γ₁ n₁
   → Length Γ₂ n₂
   → Length (Γ₁ , Γ₂) (n₁ + n₂)
-length-concat Γ₁ ∅ n₁ 0 length-Γ₁ length-zero rewrite +-identityʳ n₁ =
+length-concat {n₁ = n₁} length-Γ₁ length-zero rewrite +-identityʳ n₁ =
   length-Γ₁
-length-concat Γ₁ (Γ₂ , x₂ ∶ τ₂) n₁ (suc n₂) length-Γ₁ (length-suc Γ₂ n₂ x τ length-Γ₂) rewrite +-suc n₁ n₂ =
-  length-suc (Γ₁ , Γ₂) (n₁ + n₂) x τ (length-concat Γ₁ Γ₂ n₁ n₂ length-Γ₁ length-Γ₂)
+length-concat {Γ₁} {n₁ = n₁} length-Γ₁ (length-suc Γ₂ n₂ x τ length-Γ₂) rewrite +-suc n₁ n₂ =
+  length-suc (Γ₁ , Γ₂) (n₁ + n₂) x τ (length-concat length-Γ₁ length-Γ₂)
 
 -- Decrement of length under deletion.
 length-del : ∀ Γ₁ Γ₂ x τ n
