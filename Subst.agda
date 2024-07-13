@@ -76,39 +76,39 @@ subst-preserve-ty : ∀ {Γ x eₓ τₓ e τ e'}
   → (Γ , x ∶ τₓ) ⊢ e ∶ τ
   → e [ eₓ / x ]⇛ e'
   → Γ ⊢ e' ∶ τ
-subst-preserve-ty _ (ty-true (Γ , x ∶ τₓ)) (subst-true x eₓ) =
-  ty-true Γ
-subst-preserve-ty _ (ty-false (Γ , x ∶ τₓ)) (subst-false x eₓ) =
-  ty-false Γ
-subst-preserve-ty teₓ (ty-var (Γ , x ∶ τₓ) x τ x-∈-Γ) (subst-var-eq x eₓ) rewrite sym (in-unique x-∈-Γ (∈-b Γ x τₓ)) =
+subst-preserve-ty _ ty-true (subst-true x eₓ) =
+  ty-true
+subst-preserve-ty _ ty-false (subst-false x eₓ) =
+  ty-false
+subst-preserve-ty {Γ} {τₓ = τₓ} teₓ (ty-var x-∈-Γ) (subst-var-eq x eₓ) rewrite sym (in-unique x-∈-Γ (∈-b Γ x τₓ)) =
   weaken*-preserve-ty (weaken*-nil Γ) teₓ
-subst-preserve-ty teₓ (ty-var (Γ , x ∶ τₓ) x' τ x'-∈-Γ) (subst-var-ne x eₓ x' x-≢-x') =
+subst-preserve-ty {Γ} teₓ (ty-var {x = x'} {τ} x'-∈-Γ) (subst-var-ne x eₓ x' x-≢-x') =
   let x'-∈-Γ : x' ∶ τ ∈ Γ
       x'-∈-Γ = in-ext-distinct-in (≢-sym x-≢-x') x'-∈-Γ in
-  ty-var Γ x' τ x'-∈-Γ
-subst-preserve-ty teₓ (ty-if (Γ , x ∶ τₓ) τ e₁ e₂ e₃ te₁ te₂ te₃) (subst-if x eₓ e₁ e₂ e₃ e₁' e₂' e₃' se₁' se₂' se₃') =
+  ty-var x'-∈-Γ
+subst-preserve-ty {Γ} teₓ (ty-if {τ = τ} {e₁} {e₂} {e₃} te₁ te₂ te₃) (subst-if x eₓ e₁ e₂ e₃ e₁' e₂' e₃' se₁' se₂' se₃') =
   let te₁' : Γ  ⊢ e₁' ∶ t-bool
       te₁' = subst-preserve-ty teₓ te₁ se₁' in
   let te₂' : Γ  ⊢ e₂' ∶ τ
       te₂' = subst-preserve-ty teₓ te₂ se₂' in
   let te₃' : Γ  ⊢ e₃' ∶ τ
       te₃' = subst-preserve-ty teₓ te₃ se₃' in
-  ty-if Γ τ e₁' e₂' e₃' te₁' te₂' te₃'
-subst-preserve-ty teₓ (ty-abs (Γ , x ∶ τₓ) x e₂ τ₁ τ₂ te₂) (subst-abs-eq x eₓ τ₁ e₂) =
+  ty-if te₁' te₂' te₃'
+subst-preserve-ty {Γ} {x} {τₓ = τₓ} teₓ (ty-abs {τ₁ = τ₁} {τ₂} te₂) (subst-abs-eq x eₓ τ₁ e₂) =
   let ct : Contract (Γ , x ∶ τₓ , x ∶ τ₁) (Γ , x ∶ τ₁)
       ct = contract Γ (∅ , x ∶ τ₁) x τₓ τ₁ (∈-b ∅ x τ₁) in
-  ty-abs Γ x e₂ τ₁ τ₂ (contract-preserve-ty ct te₂)
-subst-preserve-ty teₓ (ty-abs (Γ , x ∶ τₓ) x₁ e₂ τ₁ τ₂ te₂) (subst-abs-ne x eₓ x₁ τ₁ e₂ e₂' x-≢-x₁ se₂) =
+  ty-abs (contract-preserve-ty ct te₂)
+subst-preserve-ty {Γ} {x} {τₓ = τₓ} teₓ (ty-abs {τ₂ = τ₂} te₂) (subst-abs-ne x eₓ x₁ τ₁ e₂ e₂' x-≢-x₁ se₂) =
   let ex : Exchange (Γ , x ∶ τₓ , x₁ ∶ τ₁) (Γ , x₁ ∶ τ₁ , x ∶ τₓ)
       ex = exchange Γ ∅ x τₓ x₁ τ₁ x-≢-x₁ in
   let te₂' : Γ , x₁ ∶ τ₁ , x ∶ τₓ ⊢ e₂ ∶ τ₂
       te₂' = exchange-preserve-ty ex te₂ in
   let te₂'' : Γ , x₁ ∶ τ₁ ⊢ e₂' ∶ τ₂
       te₂'' = subst-preserve-ty teₓ te₂' se₂ in
-  ty-abs Γ x₁ e₂' τ₁ τ₂ te₂''
-subst-preserve-ty teₓ (ty-app (Γ , x ∶ τₓ) e₁ e₂ τ₁ τ₂ te₁ te₂) (subst-app x eₓ e₁ e₂ e₁' e₂' se₁ se₂) =
+  ty-abs te₂''
+subst-preserve-ty {Γ} teₓ (ty-app {τ₁ = τ₁} {τ₂} te₁ te₂) (subst-app x eₓ e₁ e₂ e₁' e₂' se₁ se₂) =
   let te₁' : Γ ⊢ e₁' ∶ t-abs τ₁ τ₂
       te₁' = subst-preserve-ty teₓ te₁ se₁ in
   let te₂' : Γ ⊢ e₂' ∶ τ₁
       te₂' = subst-preserve-ty teₓ te₂ se₂ in
-  ty-app Γ e₁' e₂' τ₁ τ₂ te₁' te₂'
+  ty-app te₁' te₂'

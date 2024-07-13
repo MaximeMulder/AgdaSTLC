@@ -1,7 +1,10 @@
-My first (real) Agda project !
+My first (real) Agda proof !
 
-Proof of progress and preservation for the simply-typed lambda calculus with booleans and string binders with variable shadowing.
+Proof of progress and preservation for the simply-typed lambda calculus with booleans, using string binders with variable shadowing.
 
-TODOs:
-- Clean-up the proofs and reorganize the code
-- Use implicit parameters where possible
+Eventual TOODs:
+- Simplify substitution using a function and pattern matching instead of an algebraic data type.
+- Use Agda's standard library for reflexive-transitive closure.
+- Define and use a context deletion operation.
+- Try a similar proof using well-scoped De Bruijn indexes.
+- Try a similar proof using an higher-order abstract syntax.

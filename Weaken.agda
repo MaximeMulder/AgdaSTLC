@@ -9,9 +9,9 @@ open import Ctx
 open import Syntax
 open import Typing
 
--- Context weakening, usually abbreviated as "wk", which is the insertion of
--- an assumption in a context that does not invalidate any assumption of this
--- context.
+-- Context weakening, usually abbreviated as "weaken" or "wk", which is the
+-- insertion of an assumption in a context that does not invalidate any
+-- assumption of this context.
 data Weaken : Ctx → Ctx → Set where
   weaken-∉ : ∀ Γ₁ Γ₂ x τ
     → x ∉ Γ₁
@@ -21,7 +21,6 @@ data Weaken : Ctx → Ctx → Set where
     → Weaken (Γ₁ , Γ₂) (Γ₁ , x ∶ τ , Γ₂)
 
 -- Reflexive transitive closure of the context extension.
--- TODO: Factorize with the standard library
 data Weaken*  : Ctx → Ctx → Set where
   weaken*-base : ∀ {Γ Γ'}
     → Weaken Γ Γ'
@@ -101,32 +100,34 @@ weaken-preserve-ty : ∀ {Γ Γ' e τ}
   → Weaken Γ Γ'
   → Γ ⊢ e ∶ τ
   → Γ' ⊢ e ∶ τ
-weaken-preserve-ty {Γ' = Γ'} _ (ty-true Γ) = ty-true Γ'
-weaken-preserve-ty {Γ' = Γ'} _ (ty-false Γ) = ty-false Γ'
-weaken-preserve-ty {Γ' = Γ'} wk (ty-var Γ x τ x-∈-Γ) =
+weaken-preserve-ty _ ty-true =
+  ty-true
+weaken-preserve-ty _ ty-false =
+  ty-false
+weaken-preserve-ty {Γ' = Γ'} wk (ty-var {x = x} {τ} x-∈-Γ) =
   let x-∈-Γ' : x ∶ τ ∈ Γ'
       x-∈-Γ' = weaken-preserve-in wk x-∈-Γ in
-  ty-var Γ' x τ x-∈-Γ'
-weaken-preserve-ty {Γ' = Γ'} wk (ty-if Γ τ e₁ e₂ e₃ te₁ te₂ te₃) =
+  ty-var x-∈-Γ'
+weaken-preserve-ty {Γ' = Γ'} wk (ty-if {τ = τ} {e₁} {e₂} {e₃} te₁ te₂ te₃) =
   let te₁' : Γ' ⊢ e₁ ∶ t-bool
       te₁' = weaken-preserve-ty wk te₁ in
   let te₂' : Γ' ⊢ e₂ ∶ τ
       te₂' = weaken-preserve-ty wk te₂ in
   let te₃' : Γ' ⊢ e₃ ∶ τ
       te₃' = weaken-preserve-ty wk te₃ in
-  ty-if Γ' τ e₁ e₂ e₃ te₁' te₂' te₃'
-weaken-preserve-ty {Γ' = Γ'} wk (ty-abs Γ x e₂ τ₁ τ₂ te₂) =
+  ty-if te₁' te₂' te₃'
+weaken-preserve-ty {Γ' = Γ'} wk (ty-abs {Γ} {x} {e₂} {τ₁} {τ₂} te₂) =
   let wk' : Weaken (Γ , x ∶ τ₁) (Γ' , x ∶ τ₁)
       wk' = weaken-mono-ext x τ₁ wk in
   let te₂' : (Γ' , x ∶ τ₁) ⊢ e₂ ∶ τ₂
       te₂' = weaken-preserve-ty wk' te₂ in
-  ty-abs Γ' x e₂ τ₁ τ₂ te₂'
-weaken-preserve-ty {Γ' = Γ'} wk (ty-app Γ e₁ e₂ τ₁ τ te₁ te₂) =
+  ty-abs te₂'
+weaken-preserve-ty {Γ' = Γ'} wk (ty-app {e₁ = e₁} {e₂} {τ₁} {τ} te₁ te₂) =
   let te₁' : Γ' ⊢ e₁ ∶ t-abs τ₁ τ
       te₁' = weaken-preserve-ty wk te₁ in
   let te₂' : Γ' ⊢ e₂ ∶ τ₁
       te₂' = weaken-preserve-ty wk te₂ in
-  ty-app Γ' e₁ e₂ τ₁ τ te₁' te₂'
+  ty-app te₁' te₂'
 
 -- Preservation of typing under reflexive-transitive weakening.
 weaken*-preserve-ty : ∀ {Γ Γ' e τ}
@@ -137,7 +138,7 @@ weaken*-preserve-ty (weaken*-refl Γ) te =
   te
 weaken*-preserve-ty (weaken*-base e-Γ-Γ') te =
   weaken-preserve-ty e-Γ-Γ' te
-weaken*-preserve-ty {e = e} {τ} (weaken*-trans {Γ} {Γ'} {Γ''} ext-Γ-Γ' ext-Γ'-Γ'') te =
+weaken*-preserve-ty {e = e} {τ} (weaken*-trans {Γ} {Γ'} {Γ''} wk-Γ-Γ' wk-Γ'-Γ'') te =
   let te' : Γ' ⊢ e ∶ τ
-      te' = weaken*-preserve-ty ext-Γ-Γ' te in
-  weaken*-preserve-ty ext-Γ'-Γ'' te'
+      te' = weaken*-preserve-ty wk-Γ-Γ' te in
+  weaken*-preserve-ty wk-Γ'-Γ'' te'

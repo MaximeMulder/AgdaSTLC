@@ -59,29 +59,29 @@ exchange-preserve-ty : ∀ {Γ Γ' e τ}
   → Exchange Γ Γ'
   → Γ ⊢ e ∶ τ
   → Γ' ⊢ e ∶ τ
-exchange-preserve-ty {Γ' = Γ'} _ (ty-true Γ) = ty-true Γ'
-exchange-preserve-ty {Γ' = Γ'} _ (ty-false Γ) = ty-false Γ'
-exchange-preserve-ty {Γ' = Γ'} ex (ty-var Γ x τ x-∈-Γ) =
+exchange-preserve-ty _ ty-true = ty-true
+exchange-preserve-ty _ ty-false = ty-false
+exchange-preserve-ty {Γ' = Γ'} ex (ty-var {x = x} {τ} x-∈-Γ) =
   let x-∈-Γ' : x ∶ τ ∈ Γ'
       x-∈-Γ' = exchange-preserve-in ex x-∈-Γ in
-  ty-var Γ' x τ x-∈-Γ'
-exchange-preserve-ty {Γ' = Γ'} ex (ty-if Γ τ e₁ e₂ e₃ te₁ te₂ te₃) =
+  ty-var x-∈-Γ'
+exchange-preserve-ty {Γ' = Γ'} ex (ty-if {τ = τ} {e₁} {e₂} {e₃} te₁ te₂ te₃) =
   let te₁' : Γ' ⊢ e₁ ∶ t-bool
       te₁' = exchange-preserve-ty ex te₁ in
   let te₂' : Γ' ⊢ e₂ ∶ τ
       te₂' = exchange-preserve-ty ex te₂ in
   let te₃' : Γ' ⊢ e₃ ∶ τ
       te₃' = exchange-preserve-ty ex te₃ in
-  ty-if Γ' τ e₁ e₂ e₃ te₁' te₂' te₃'
-exchange-preserve-ty {Γ' = Γ'} ex (ty-abs Γ x e₂ τ₁ τ₂ te₂) =
+  ty-if te₁' te₂' te₃'
+exchange-preserve-ty {Γ' = Γ'} ex (ty-abs {Γ} {x} {e₂} {τ₁} {τ₂} te₂) =
   let ex' : Exchange (Γ , x ∶ τ₁) (Γ' , x ∶ τ₁)
       ex' = exchange-mono-ext x τ₁ ex in
   let te₂' : (Γ' , x ∶ τ₁) ⊢ e₂ ∶ τ₂
       te₂' = exchange-preserve-ty ex' te₂ in
-  ty-abs Γ' x e₂ τ₁ τ₂ te₂'
-exchange-preserve-ty {Γ' = Γ'} ex (ty-app Γ e₁ e₂ τ₁ τ te₁ te₂) =
+  ty-abs te₂'
+exchange-preserve-ty {Γ' = Γ'} ex (ty-app {e₁ = e₁} {e₂} {τ₁} {τ} te₁ te₂) =
   let te₁' : Γ' ⊢ e₁ ∶ t-abs τ₁ τ
       te₁' = exchange-preserve-ty ex te₁ in
   let te₂' : Γ' ⊢ e₂ ∶ τ₁
       te₂' = exchange-preserve-ty ex te₂ in
-  ty-app Γ' e₁ e₂ τ₁ τ te₁' te₂'
+  ty-app te₁' te₂'

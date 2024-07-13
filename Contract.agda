@@ -9,9 +9,9 @@ open import Ctx
 open import Syntax
 open import Typing
 
--- Context contraction, usually abbreviated as "ct", which is the deletion of
--- an assumption of a context that does not invalidate any assumption of this
--- context.
+-- Context contraction, usually abbreviated as "contract" or "ct", which is the
+-- deletion of an assumption of a context that does not invalidate any
+-- assumption of this context.
 data Contract : Ctx → Ctx → Set where
   contract : ∀ Γ₁ Γ₂ x τ τ₂
     → x ∶ τ₂ ∈ Γ₂
@@ -58,29 +58,31 @@ contract-preserve-ty : ∀ {Γ Γ' e τ}
   → Contract Γ Γ'
   → Γ ⊢ e ∶ τ
   → Γ' ⊢ e ∶ τ
-contract-preserve-ty {Γ' = Γ'} _ (ty-true Γ) = ty-true Γ'
-contract-preserve-ty {Γ' = Γ'} _ (ty-false Γ) = ty-false Γ'
-contract-preserve-ty {Γ' = Γ'} ct (ty-var Γ x τ x-∈-Γ) =
+contract-preserve-ty _ ty-true =
+  ty-true
+contract-preserve-ty _ ty-false =
+  ty-false
+contract-preserve-ty {Γ' = Γ'} ct (ty-var {x = x} {τ} x-∈-Γ) =
   let x-∈-Γ' : x ∶ τ ∈ Γ'
       x-∈-Γ' = contract-preserve-in ct x-∈-Γ in
-  ty-var Γ' x τ x-∈-Γ'
-contract-preserve-ty {Γ' = Γ'} ct (ty-if Γ τ e₁ e₂ e₃ te₁ te₂ te₃) =
+  ty-var x-∈-Γ'
+contract-preserve-ty {Γ' = Γ'} ct (ty-if {τ = τ} {e₁} {e₂} {e₃} te₁ te₂ te₃) =
   let te₁' : Γ' ⊢ e₁ ∶ t-bool
       te₁' = contract-preserve-ty ct te₁ in
   let te₂' : Γ' ⊢ e₂ ∶ τ
       te₂' = contract-preserve-ty ct te₂ in
   let te₃' : Γ' ⊢ e₃ ∶ τ
       te₃' = contract-preserve-ty ct te₃ in
-  ty-if Γ' τ e₁ e₂ e₃ te₁' te₂' te₃'
-contract-preserve-ty {Γ' = Γ'} ct (ty-abs Γ x e₂ τ₁ τ₂ te₂) =
+  ty-if te₁' te₂' te₃'
+contract-preserve-ty {Γ' = Γ'} ct (ty-abs {Γ} {x} {e₂} {τ₁} {τ₂} te₂) =
   let ct' : Contract (Γ , x ∶ τ₁) (Γ' , x ∶ τ₁)
       ct' = contract-mono-ext x τ₁ ct in
   let te₂' : (Γ' , x ∶ τ₁) ⊢ e₂ ∶ τ₂
       te₂' = contract-preserve-ty ct' te₂ in
-  ty-abs Γ' x e₂ τ₁ τ₂ te₂'
-contract-preserve-ty {Γ' = Γ'} ct (ty-app Γ e₁ e₂ τ₁ τ te₁ te₂) =
+  ty-abs te₂'
+contract-preserve-ty {Γ' = Γ'} ct (ty-app {e₁ = e₁} {e₂} {τ₁} {τ} te₁ te₂) =
   let te₁' : Γ' ⊢ e₁ ∶ t-abs τ₁ τ
       te₁' = contract-preserve-ty ct te₁ in
   let te₂' : Γ' ⊢ e₂ ∶ τ₁
       te₂' = contract-preserve-ty ct te₂ in
-  ty-app Γ' e₁ e₂ τ₁ τ te₁' te₂'
+  ty-app te₁' te₂'
